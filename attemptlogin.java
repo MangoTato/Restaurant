@@ -23,6 +23,6 @@ class attemptlogin {
             return;
         }
 
-        mainFrame.showDashboard(username, user.isAdmin());
+        mainFrame.showDashboard(username, user.isAdmin(), user.isEmployee());
     }
 }

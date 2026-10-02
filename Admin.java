@@ -1,30 +1,37 @@
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
 public class Admin extends JPanel {
     private final Frame mainFrame;
+    private final BufferedImage backgroundImage;
     private final CardLayout contentLayout = new CardLayout();
     private final JPanel contentPanel = new JPanel(contentLayout);
 
     public Admin(Frame mainFrame, String username) {
         this.mainFrame = mainFrame;
+        backgroundImage = loadBackgroundImage();
 
         setLayout(new BorderLayout(0, 20));
         setBackground(Frame.LIGHT);
-        setBorder(new EmptyBorder(28, 38, 28, 38));
+        setBorder(new EmptyBorder(18, 38, 28, 38));
 
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
         header.add(
-            mainFrame.createLabel("Good day, " + username, 25, Frame.NAVY),
+            mainFrame.createLabel(" " , 25, Frame.NAVY),
             BorderLayout.WEST
         );
 
         JButton logout = new JButton("Sign out");
         logout.addActionListener(e -> mainFrame.signOut());
         header.add(logout, BorderLayout.EAST);
+    
 
         JPanel actions = new JPanel(new GridBagLayout());
         actions.setOpaque(false);
@@ -39,9 +46,7 @@ public class Admin extends JPanel {
             "Customer",
             "Reports",
             "Tables",
-            "Kitchen",
-            "Front Desk",
-            "Cashier"
+            "Front Desk"
         );
 
         for (String action : actionNames) {
@@ -57,6 +62,7 @@ public class Admin extends JPanel {
         gbc.weightx = 1;
         gbc.weighty = 1;
         gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.insets = new Insets(120, 0, 0, 0);
         actions.add(buttonPanel, gbc);
 
         contentPanel.setBackground(Color.WHITE);
@@ -100,7 +106,10 @@ public class Admin extends JPanel {
                 Staff staff = new Staff(mainFrame);
                 contentPanel.removeAll();
                 contentPanel.add(staff.showStaff(),"Staff");
-                
+                } else if ("Tables".equals(action)) {
+                    contentPanel.removeAll();
+                    contentPanel.add(createTablesPanel(), "Tables");
+                    contentLayout.show(contentPanel, "Tables");
                 } else {
                     contentPanel.removeAll();
                     contentPanel.add(ConstructionPanel(action),action);
@@ -154,7 +163,81 @@ public class Admin extends JPanel {
         return panel;
     }
 
+    private JPanel createTablesPanel() {
+        JPanel panel = new JPanel(new BorderLayout(10, 15));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(new EmptyBorder(30, 35, 30, 35));
+
+        JLabel title = new JLabel("Table Availability");
+        title.setFont(new Font("SansSerif", Font.BOLD, 25));
+        title.setForeground(Frame.NAVY);
+        panel.add(title, BorderLayout.NORTH);
+
+        JPanel tableList = new JPanel();
+        tableList.setLayout(new BoxLayout(tableList, BoxLayout.Y_AXIS));
+        tableList.setBackground(Color.WHITE);
+        JScrollPane scrollPane = new JScrollPane(tableList);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(15);
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        Runnable refresh = () -> {
+            tableList.removeAll();
+            for (int table = 1; table <= TableService.TABLE_COUNT; table++) {
+                final int tableNumber = table;
+                boolean occupied = mainFrame.tableService.isOccupied(tableNumber);
+                JPanel row = new JPanel(new BorderLayout(15, 8));
+                row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 62));
+                row.setBackground(Color.WHITE);
+                row.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(Color.LIGHT_GRAY), new EmptyBorder(10, 12, 10, 12)));
+
+                JLabel tableLabel = new JLabel("Table " + tableNumber);
+                tableLabel.setFont(new Font("SansSerif", Font.BOLD, 17));
+                JLabel status = new JLabel(occupied ? "Occupied" : "Open");
+                status.setFont(new Font("SansSerif", Font.BOLD, 15));
+                status.setForeground(occupied ? new Color(190, 45, 45) : new Color(0, 130, 80));
+                JPanel labels = new JPanel(new FlowLayout(FlowLayout.LEFT, 18, 0));
+                labels.setOpaque(false);
+                labels.add(tableLabel);
+                labels.add(status);
+                row.add(labels, BorderLayout.WEST);
+
+                JButton done = new JButton("Table Done");
+                done.setVisible(occupied);
+                done.setEnabled(occupied);
+                done.addActionListener(e -> {
+                    mainFrame.orderService.clearTableOrders(tableNumber);
+                    mainFrame.tableService.clear(tableNumber);
+                });
+                row.add(done, BorderLayout.EAST);
+                tableList.add(row);
+                tableList.add(Box.createVerticalStrut(8));
+            }
+            tableList.revalidate();
+            tableList.repaint();
+        };
+        mainFrame.tableService.addListener(refresh);
+        refresh.run();
+        return panel;
+    }
+
     public void ShowAddUserDialog() {
         new AddUser(mainFrame).ShowAddUserDialog();
+    }
+
+    @Override
+    protected void paintComponent(Graphics graphics) {
+        super.paintComponent(graphics);
+        if (backgroundImage != null) {
+            graphics.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
+        }
+    }
+
+    private BufferedImage loadBackgroundImage() {
+        try {
+            return ImageIO.read(new File("Images", "5.png"));
+        } catch (IOException e) {
+            return null;
+        }
     }
 }

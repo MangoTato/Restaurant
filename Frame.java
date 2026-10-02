@@ -19,6 +19,8 @@ public class Frame extends JFrame {
     final JRadioButton employeeRole = new JRadioButton("Employee");
     final JRadioButton customer = new JRadioButton( "Customer");
     final JLabel messageLabel = new JLabel(" ");
+    final OrderService orderService = new OrderService();
+    final TableService tableService = new TableService();
 
     private String currentuser;
 
@@ -109,7 +111,7 @@ public class Frame extends JFrame {
 
     public void showViewMenu() {
 
-        ViewMenu menu = new ViewMenu(this);
+        ViewMenu menu = new ViewMenu(this, true);
         menu.ShowViewMenuPanel();
     }
 

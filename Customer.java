@@ -27,7 +27,7 @@ public class Customer extends JPanel {
         );
 
         JButton logout = new JButton("Sign out");
-        logout.addActionListener(e -> mainFrame.signOut());
+        logout.addActionListener(e -> confirmCustomerSignOut());
         header.add(logout, BorderLayout.EAST);
 
         contentPanel.setBackground(Color.WHITE);
@@ -81,16 +81,49 @@ public class Customer extends JPanel {
         message.setForeground(Color.DARK_GRAY);
         message.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+        JLabel tablePrompt = new JLabel("Choose your table:");
+        tablePrompt.setFont(new Font("SansSerif", Font.PLAIN, 15));
+        tablePrompt.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JComboBox<Integer> tableSelector = new JComboBox<>();
+        for (int table = 1; table <= TableService.TABLE_COUNT; table++) {
+            tableSelector.addItem(table);
+        }
+        tableSelector.setMaximumSize(new Dimension(180, 30));
+        tableSelector.setAlignmentX(Component.CENTER_ALIGNMENT);
+
         JButton startOrderButton = new JButton("Start Order");
         startOrderButton.setPreferredSize(new Dimension(180, 55));
         startOrderButton.setMaximumSize(new Dimension(180, 55));
         startOrderButton.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        startOrderButton.addActionListener(e -> showMenu());
+        startOrderButton.addActionListener(e -> {
+            Integer selectedTable = (Integer) tableSelector.getSelectedItem();
+            if (selectedTable == null) return;
+
+            if (mainFrame.tableService.isOccupied(selectedTable)) {
+                int choice = JOptionPane.showConfirmDialog(
+                    this,
+                    "Table " + selectedTable + " is currently occupied. Are you sure this is the right table?",
+                    "Confirm Occupied Table",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE
+                );
+                if (choice != JOptionPane.YES_OPTION) return;
+            } else {
+                mainFrame.tableService.occupy(selectedTable);
+            }
+            // An occupied table is reopened with its saved, table-specific order.
+            showMenu(selectedTable);
+        });
 
         card.add(title);
         card.add(Box.createVerticalStrut(15));
         card.add(message);
+        card.add(Box.createVerticalStrut(18));
+        card.add(tablePrompt);
+        card.add(Box.createVerticalStrut(8));
+        card.add(tableSelector);
         card.add(Box.createVerticalStrut(30));
         card.add(startOrderButton);
 
@@ -99,8 +132,8 @@ public class Customer extends JPanel {
         return panel;
     }
 
-    private void showMenu() {
-    ViewMenu viewMenu = new ViewMenu(mainFrame);
+    private void showMenu(int tableNumber) {
+    ViewMenu viewMenu = new ViewMenu(mainFrame, true, tableNumber);
 
     contentPanel.add(
         viewMenu.ShowViewMenuPanel(),
@@ -112,4 +145,27 @@ public class Customer extends JPanel {
     contentPanel.revalidate();
     contentPanel.repaint();
 }
+
+    private void confirmCustomerSignOut() {
+        JPasswordField passwordField = new JPasswordField(14);
+        int choice = JOptionPane.showConfirmDialog(
+            this,
+            passwordField,
+            "Enter password to sign out",
+            JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.PLAIN_MESSAGE
+        );
+        if (choice != JOptionPane.OK_OPTION) return;
+
+        if ("adm123".equals(new String(passwordField.getPassword()))) {
+            mainFrame.signOut();
+        } else {
+            JOptionPane.showMessageDialog(
+                this,
+                "Incorrect password. You remain signed in.",
+                "Sign out denied",
+                JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
 }

@@ -2,6 +2,9 @@ public class MenuItem {
 
     private String name;
     private double price;
+    private String category = "Main Dish";
+    private String description = "Delicious restaurant dish";
+    private String imagePath = "";
 
     public MenuItem(String name, double price) {
         this.name = name;
@@ -23,4 +26,11 @@ public class MenuItem {
     public void setPrice(double price) {
         this.price = price;
     }
+
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public String getImagePath() { return imagePath; }
+    public void setImagePath(String imagePath) { this.imagePath = imagePath; }
 }

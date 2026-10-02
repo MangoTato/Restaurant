@@ -9,17 +9,27 @@
     public class ViewMenu extends JPanel {
 
         private final Frame mainFrame;
+        private final boolean customerView;
+        private final int tableNumber;
 
         private JPanel menuGrid;
         private String currentCategory = "All";
-        private final List<OrderItem> orders = new ArrayList<>();
         private final Map<MenuItem, String> customerNotes = new HashMap<>();
 
         private final CardLayout viewLayout = new CardLayout();
         private final JPanel viewPanel = new JPanel(viewLayout);
+        private JLabel waitTotalLabel;
+        private JPanel orderPanel;
+        private JPanel receiptPanel;
 
-        public ViewMenu(Frame mainFrame) {
+        public ViewMenu(Frame mainFrame, boolean customerView) {
+            this(mainFrame, customerView, 0);
+        }
+
+        public ViewMenu(Frame mainFrame, boolean customerView, int tableNumber) {
             this.mainFrame = mainFrame;
+            this.customerView = customerView;
+            this.tableNumber = tableNumber;
         }
 
         public JPanel ShowViewMenuPanel() {
@@ -34,9 +44,12 @@
             JPanel menuPanel = createMenuPanel();
 
             viewPanel.removeAll();
+            orderPanel = showOrderPanel();
+            receiptPanel = checkoutpanel();
             viewPanel.add(menuPanel, "Menu");
-            viewPanel.add(showOrderPanel(), "Order");
-            viewPanel.add(checkoutpanel(), "Check Out");
+            viewPanel.add(orderPanel, "Order");
+            viewPanel.add(waitForRepresentativePanel(), "Wait");
+            viewPanel.add(receiptPanel, "Check Out");
 
             viewLayout.show(viewPanel, "Menu");
 
@@ -65,15 +78,24 @@
             JButton mainDishButton = new JButton("Main Dish");
             JButton sideDishButton = new JButton("Side Dish");
             JButton beverageButton = new JButton("Beverages");
-            JButton orderButton = new JButton("Order Panel");
-            JButton checkoutButton = new JButton("Check Out");
 
             categoryPanel.add(allButton);
             categoryPanel.add(mainDishButton);
             categoryPanel.add(sideDishButton);
             categoryPanel.add(beverageButton);
-            categoryPanel.add(orderButton);
-            categoryPanel.add(checkoutButton);
+            if (customerView) {
+                JButton orderButton = new JButton("Order Panel");
+                JButton checkoutButton = new JButton("Check Out");
+                categoryPanel.add(orderButton);
+                categoryPanel.add(checkoutButton);
+                orderButton.addActionListener(e -> {
+                    refreshOrderPanel();
+                    viewLayout.show(viewPanel, "Order");
+                });
+                checkoutButton.addActionListener(e -> {
+                    showCheckoutWhenReady();
+                });
+            }
 
             centerPanel.add(categoryPanel, BorderLayout.NORTH);
 
@@ -90,13 +112,6 @@
 
             centerPanel.add(scrollPane, BorderLayout.CENTER);
             menuPanel.add(centerPanel, BorderLayout.CENTER);
-
-            JButton closeButton = new JButton("Back");
-            JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-            bottomPanel.setOpaque(false);
-            bottomPanel.add(closeButton);
-
-            menuPanel.add(bottomPanel, BorderLayout.SOUTH);
 
             allButton.addActionListener(e -> {
                 currentCategory = "All";
@@ -116,25 +131,6 @@
             beverageButton.addActionListener(e -> {
                 currentCategory = "Beverages";
                 refreshMenuGrid();
-            });
-
-            orderButton.addActionListener(e -> {
-                refreshOrderPanel();
-                viewLayout.show(viewPanel, "Order");
-            });
-
-            checkoutButton.addActionListener(e -> {
-                refreshCheckOut();
-                viewLayout.show(viewPanel, "Check Out");
-            });
-            closeButton.addActionListener(e -> {
-                Container parent = menuPanel.getParent();
-
-                if (parent instanceof JPanel) {
-                    parent.remove(menuPanel);
-                    parent.revalidate();
-                    parent.repaint();
-                }
             });
 
             return menuPanel;
@@ -161,9 +157,9 @@
             JPanel card = new JPanel();
             card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
             card.setBackground(Color.WHITE);
-            card.setPreferredSize(new Dimension(250, 230));
-            card.setMinimumSize(new Dimension(250, 230));
-            card.setMaximumSize(new Dimension(250, 230));
+            card.setPreferredSize(new Dimension(250, 260));
+            card.setMinimumSize(new Dimension(250, 260));
+            card.setMaximumSize(new Dimension(250, 260));
             card.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(Frame.NAVY, 1),
                     new EmptyBorder(12, 12, 12, 12)
@@ -216,6 +212,8 @@
             descriptionLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
             descriptionLabel.setForeground(Color.DARK_GRAY);
             descriptionLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            descriptionLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            descriptionLabel.setMaximumSize(new Dimension(220, 35));
 
             card.add(descriptionLabel);
             card.add(Box.createVerticalStrut(8));
@@ -225,16 +223,19 @@
             );
             buttonPanel.setOpaque(false);
 
-            JButton noteButton = new JButton("Add Note");
-            JButton orderButton = new JButton("Add Order");
-
-            buttonPanel.add(noteButton);
-            buttonPanel.add(orderButton);
-
-            card.add(buttonPanel);
-
-            noteButton.addActionListener(e -> addNote(item));
-            orderButton.addActionListener(e -> addOrder(item));
+            if (customerView) {
+                SpinnerNumberModel quantityModel = new SpinnerNumberModel(1, 1, 99, 1);
+                JSpinner quantitySpinner = new JSpinner(quantityModel);
+                JButton noteButton = new JButton("Add Note");
+                JButton orderButton = new JButton("Add Order");
+                buttonPanel.add(new JLabel("Qty:"));
+                buttonPanel.add(quantitySpinner);
+                buttonPanel.add(noteButton);
+                buttonPanel.add(orderButton);
+                card.add(buttonPanel);
+                noteButton.addActionListener(e -> addNote(item));
+                orderButton.addActionListener(e -> addOrder(item, (Integer) quantitySpinner.getValue()));
+            }
 
             return card;
         }
@@ -269,26 +270,9 @@
             }
         }
 
-        private void addOrder(MenuItem item) {
+        private void addOrder(MenuItem item, int quantity) {
             String note = customerNotes.getOrDefault(item, "");
-
-            for (OrderItem order : orders) {
-                if (order.item == item) {
-                    order.quantity++;
-                    order.note = note;
-
-                    JOptionPane.showMessageDialog(
-                            this,
-                            item.getName() + " quantity increased.",
-                            "Order Updated",
-                            JOptionPane.INFORMATION_MESSAGE
-                    );
-
-                    return;
-                }
-            }
-
-            orders.add(new OrderItem(item, 1, note));
+            mainFrame.orderService.add(item, note, quantity, tableNumber);
 
             JOptionPane.showMessageDialog(
                     this,
@@ -320,6 +304,7 @@
             orderList.setLayout(new BoxLayout(orderList, BoxLayout.Y_AXIS));
             orderList.setBackground(Color.WHITE);
 
+            java.util.List<KitchenOrder> orders = getDisplayedOrders();
             if (orders.isEmpty()) {
                 JLabel emptyLabel = new JLabel("No items in your order.");
                 emptyLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
@@ -330,7 +315,7 @@
                 orderList.add(emptyLabel);
                 orderList.add(Box.createVerticalGlue());
             } else {
-                for (OrderItem order : orders) {
+                for (KitchenOrder order : orders) {
                     JPanel itemPanel = new JPanel(new BorderLayout(10, 5));
                     itemPanel.setBackground(Color.WHITE);
                     itemPanel.setBorder(
@@ -342,56 +327,67 @@
 
                     JLabel itemLabel = new JLabel(
                             "<html><b>"
-                            + order.item.getName()
+                            + order.getItem().getName()
                             + "</b><br>"
                             + "₱"
-                            + String.format("%.2f", order.item.getPrice())
+                            + String.format("%.2f", order.getItem().getPrice())
                             + "<br>Quantity: "
-                            + order.quantity
+                            + order.getQuantity()
                             + "<br>Note: "
-                            + (order.note.isEmpty() ? "None" : order.note)
+                            + (order.getNote().isEmpty() ? "None" : order.getNote())
                             + "</html>"
                     );
+
+                    JLabel statusLabel = new JLabel();
+                    statusLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+                    updateStatusLabel(statusLabel, order);
 
                     JPanel buttons = new JPanel(new FlowLayout());
                     buttons.setOpaque(false);
 
-                    JButton minusButton = new JButton("-");
-                    JButton plusButton = new JButton("+");
                     JButton removeButton = new JButton("Remove");
                     JButton noteButton = new JButton("Edit Note");
+                    JButton receivedButton = new JButton("Order Received");
 
-                    buttons.add(minusButton);
-                    buttons.add(plusButton);
                     buttons.add(noteButton);
                     buttons.add(removeButton);
+                    receivedButton.setVisible(order.isComplete());
+                    buttons.add(receivedButton);
 
-                    itemPanel.add(itemLabel, BorderLayout.CENTER);
+                    JPanel details = new JPanel();
+                    details.setLayout(new BoxLayout(details, BoxLayout.Y_AXIS));
+                    details.setOpaque(false);
+                    details.add(itemLabel);
+                    details.add(Box.createVerticalStrut(5));
+                    details.add(statusLabel);
+                    itemPanel.add(details, BorderLayout.CENTER);
                     itemPanel.add(buttons, BorderLayout.EAST);
+
+                    Timer countdown = new Timer(1000, e -> {
+                        if (!statusLabel.isDisplayable()) {
+                            ((Timer) e.getSource()).stop();
+                        } else {
+                            updateStatusLabel(statusLabel, order);
+                            receivedButton.setVisible(order.isComplete());
+                            removeButton.setEnabled(order.isPending());
+                            buttons.revalidate();
+                        }
+                    });
+                    countdown.start();
+
+                    removeButton.setEnabled(order.isPending());
 
                     orderList.add(itemPanel);
                     orderList.add(Box.createVerticalStrut(8));
 
-                    minusButton.addActionListener(e -> {
-                        if (order.quantity > 1) {
-                            order.quantity--;
-                        } else {
-                            orders.remove(order);
-                        }
-
-                    });
-
-                    plusButton.addActionListener(e -> {
-                        order.quantity++;
-                    });
-
                     removeButton.addActionListener(e -> {
-                        orders.remove(order);
+                        mainFrame.orderService.changeQuantity(order, 0);
+                        refreshOrderPanel();
                     });
 
                     noteButton.addActionListener(e -> {
                         JTextArea noteArea = new JTextArea(
-                                order.note,
+                                order.getNote(),
                                 5,
                                 25
                         );
@@ -402,16 +398,22 @@
                         int result = JOptionPane.showConfirmDialog(
                                 this,
                                 new JScrollPane(noteArea),
-                                "Edit Note - " + order.item.getName(),
+                                "Edit Note - " + order.getItem().getName(),
                                 JOptionPane.OK_CANCEL_OPTION,
                                 JOptionPane.PLAIN_MESSAGE
                         );
 
                         if (result == JOptionPane.OK_OPTION) {
-                            order.note = noteArea.getText().trim();
-                            customerNotes.put(order.item, order.note);
+                            String note = noteArea.getText().trim();
+                            mainFrame.orderService.updateNote(order, note);
+                            customerNotes.put(order.getItem(), note);
                             refreshOrderPanel();
                         }
+                    });
+
+                    receivedButton.addActionListener(e -> {
+                        mainFrame.orderService.receiveOrder(order);
+                        refreshOrderPanel();
                     });
                 }
             }
@@ -423,8 +425,8 @@
 
             double total = 0;
 
-            for (OrderItem order : orders) {
-                total += order.item.getPrice() * order.quantity;
+            for (KitchenOrder order : orders) {
+                total += order.getItem().getPrice() * order.getQuantity();
             }
 
             JLabel totalLabel = new JLabel(
@@ -448,7 +450,7 @@
                 viewLayout.show(viewPanel, "Menu");
             });
             checkoutbutton.addActionListener(e -> {
-                viewLayout.show(viewPanel, "Check Out");
+                showCheckoutWhenReady();
             });
 
             return panel;
@@ -459,7 +461,7 @@
             panel.setBackground(Color.WHITE);
 
             JLabel titleLabel = mainFrame.createLabel(
-                    "Receipt ",
+                    "Receipt - Table " + tableNumber,
                     25,
                     Frame.NAVY
             );
@@ -476,6 +478,16 @@
             orderList.setLayout(new BoxLayout(orderList, BoxLayout.Y_AXIS));
             orderList.setBackground(Color.WHITE);
 
+            for (KitchenOrder order : getDisplayedOrders()) {
+                JLabel item = new JLabel(order.getItem().getName() + "  x" + order.getQuantity()
+                    + "  ₱" + String.format("%.2f", order.getItem().getPrice() * order.getQuantity()));
+                item.setBorder(new EmptyBorder(7, 10, 7, 10));
+                orderList.add(item);
+            }
+            if (orderList.getComponentCount() == 0) {
+                orderList.add(new JLabel("No items were ordered."));
+            }
+
             JScrollPane scrollPane = new JScrollPane(orderList);
             scrollPane.getVerticalScrollBar().setUnitIncrement(15);
 
@@ -483,9 +495,7 @@
 
             double total = 0;
 
-            for (OrderItem order : orders) {
-                total += order.item.getPrice() * order.quantity;
-            }
+            total = mainFrame.orderService.getTableTotal(tableNumber);
 
             JLabel totalLabel = new JLabel(
                     "Total: ₱" + String.format("%.2f", total)
@@ -509,59 +519,122 @@
             return panel;
         }
 
+        private JPanel waitForRepresentativePanel() {
+            JPanel panel = new JPanel(new GridBagLayout());
+            panel.setBackground(Color.WHITE);
+            JPanel card = new JPanel();
+            card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+            card.setBackground(Color.WHITE);
+            card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Frame.NAVY, 2), new EmptyBorder(45, 70, 45, 70)));
+
+            JLabel title = mainFrame.createLabel("Checkout Requested", 26, Frame.NAVY);
+            title.setAlignmentX(Component.CENTER_ALIGNMENT);
+            JLabel message = new JLabel("Please wait for a representative.");
+            message.setFont(new Font("SansSerif", Font.PLAIN, 17));
+            message.setAlignmentX(Component.CENTER_ALIGNMENT);
+            waitTotalLabel = new JLabel("Table " + tableNumber + " • Total: ₱"
+                + String.format("%.2f", mainFrame.orderService.getTableTotal(tableNumber)));
+            waitTotalLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            JButton done = new JButton("Done");
+            done.setAlignmentX(Component.CENTER_ALIGNMENT);
+            done.addActionListener(e -> {
+                refreshCheckOut();
+                viewLayout.show(viewPanel, "Check Out");
+            });
+            card.add(title);
+            card.add(Box.createVerticalStrut(15));
+            card.add(message);
+            card.add(Box.createVerticalStrut(10));
+            card.add(waitTotalLabel);
+            card.add(Box.createVerticalStrut(25));
+            card.add(done);
+            panel.add(card);
+            return panel;
+        }
+
         private void refreshOrderPanel() {
-            viewPanel.remove(1);
-            viewPanel.add(showOrderPanel(), "Order");
+            viewPanel.remove(orderPanel);
+            orderPanel = showOrderPanel();
+            viewPanel.add(orderPanel, "Order");
+            viewLayout.show(viewPanel, "Order");
             viewPanel.revalidate();
             viewPanel.repaint();
         }
 
         private void refreshCheckOut(){
-            viewPanel.remove(1);
-            viewPanel.add(checkoutpanel(), "Check Out");
+            viewPanel.remove(receiptPanel);
+            receiptPanel = checkoutpanel();
+            viewPanel.add(receiptPanel, "Check Out");
             viewPanel.revalidate();
             viewPanel.repaint();
         }
 
-        private String getCategory(MenuItem item) {
-            if (item instanceof CategorizedMenuItem) {
-                return ((CategorizedMenuItem) item).getCategory();
+        private void showCheckoutWhenReady() {
+            java.util.List<KitchenOrder> orders = getDisplayedOrders();
+            if (orders.isEmpty()) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "You need an order before checking out.",
+                        "No Active Order",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
             }
 
-            return "Main Dish";
+            for (KitchenOrder order : orders) {
+                if (!order.isReceived()) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Checkout is available after every order is marked Order Received.",
+                            "Order Not Received",
+                            JOptionPane.WARNING_MESSAGE
+                    );
+                    return;
+                }
+            }
+
+            mainFrame.tableService.requestCheckout(tableNumber);
+            waitTotalLabel.setText("Table " + tableNumber + " • Total: ₱"
+                + String.format("%.2f", mainFrame.orderService.getTableTotal(tableNumber)));
+            viewLayout.show(viewPanel, "Wait");
+        }
+
+        private void updateStatusLabel(JLabel label, KitchenOrder order) {
+            if (order.isPending()) {
+                label.setText("PENDING");
+                label.setForeground(new Color(210, 150, 0));
+            } else if (order.isComplete()) {
+                label.setText("For Serving");
+                label.setForeground(new Color(210, 150, 0));
+            } else if (order.isReceived()) {
+                label.setText("Order Received");
+                label.setForeground(new Color(0, 130, 80));
+            } else {
+                long seconds = order.getSecondsRemaining();
+                label.setText(seconds == 0 ? "Ready to serve" : "Time remaining: " + formatRemaining(seconds));
+                label.setForeground(seconds == 0 ? new Color(0, 130, 80) : Frame.TEAL);
+            }
+        }
+
+        private java.util.List<KitchenOrder> getDisplayedOrders() {
+            return customerView ? mainFrame.orderService.getOrders(tableNumber) : mainFrame.orderService.getOrders();
+        }
+
+        private String formatRemaining(long seconds) {
+            return String.format("%02d:%02d:%02d", seconds / 3600, (seconds % 3600) / 60, seconds % 60);
+        }
+
+        private String getCategory(MenuItem item) {
+            return item.getCategory();
         }
 
         private String getDescription(MenuItem item) {
-            if (item instanceof CategorizedMenuItem) {
-                return ((CategorizedMenuItem) item).getDescription();
-            }
-
-            return "Delicious restaurant dish";
+            return item.getDescription();
         }
 
         private String getImagePath(MenuItem item) {
-            if (item instanceof CategorizedMenuItem) {
-                return ((CategorizedMenuItem) item).getImagePath();
-            }
-
-            return "";
-        }
-
-        private static class OrderItem {
-            MenuItem item;
-            int quantity;
-            String note;
-
-            OrderItem(MenuItem item, int quantity, String note) {
-                this.item = item;
-                this.quantity = quantity;
-                this.note = note;
-            }
-        }
-
-        private interface CategorizedMenuItem {
-            String getCategory();
-            String getDescription();
-            String getImagePath();
+            return item.getImagePath();
         }
     }
+

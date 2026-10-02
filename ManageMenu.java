@@ -182,18 +182,10 @@ public class ManageMenu extends JPanel {
         JButton beverageButton =
                 createCategoryButton("Beverages");
 
-        JButton orderButton =
-                createCategoryButton("Order Panel");
-
-        JButton checkoutButton =
-                createCategoryButton("Check Out");
-
         navigationPanel.add(allButton);
         navigationPanel.add(mainDishButton);
         navigationPanel.add(sideDishButton);
         navigationPanel.add(beverageButton);
-        navigationPanel.add(orderButton);
-        navigationPanel.add(checkoutButton);
 
         centerPanel.add(navigationPanel,BorderLayout.NORTH);
 
@@ -318,25 +310,6 @@ public class ManageMenu extends JPanel {
             refreshMenuGrid();
         });
 
-        orderButton.addActionListener(e -> {
-
-            refreshOrderPanel();
-
-            viewLayout.show(
-                    viewPanel,
-                    "Order"
-            );
-        });
-
-        checkoutButton.addActionListener(e -> {
-
-            refreshCheckout();
-
-            viewLayout.show(
-                    viewPanel,
-                    "Check Out"
-            );
-        });
 
         // ========================================================
         // ADMIN ACTIONS
@@ -709,44 +682,6 @@ public class ManageMenu extends JPanel {
         // ========================================================
         // BUTTONS
         // ========================================================
-
-        JPanel buttonPanel =
-                new JPanel(
-                        new FlowLayout(
-                                FlowLayout.CENTER,
-                                5,
-                                0
-                        )
-                );
-
-        buttonPanel.setOpaque(false);
-
-        JButton noteButton =
-                new JButton("Add Note");
-
-        JButton orderButton =
-                new JButton("Add Order");
-
-        buttonPanel.add(noteButton);
-        buttonPanel.add(orderButton);
-
-        card.add(buttonPanel);
-
-        // ========================================================
-        // NOTE ACTION
-        // ========================================================
-
-        noteButton.addActionListener(
-                e -> addNote(item)
-        );
-
-        // ========================================================
-        // ORDER ACTION
-        // ========================================================
-
-        orderButton.addActionListener(
-                e -> addOrder(item)
-        );
 
         return card;
     }
@@ -1902,6 +1837,9 @@ public class ManageMenu extends JPanel {
                         name,
                         price
                 );
+        newItem.setCategory(category);
+        newItem.setDescription(description);
+        newItem.setImagePath(imagePath);
 
         menuItems.add(newItem);
 
@@ -2221,6 +2159,10 @@ public class ManageMenu extends JPanel {
                 imageField
                         .getText()
                         .trim();
+
+        selectedItem.setCategory(details.category);
+        selectedItem.setDescription(details.description);
+        selectedItem.setImagePath(details.imagePath);
 
         currentCategory =
                 details.category;

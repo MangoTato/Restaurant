@@ -9,16 +9,19 @@ class attemptlogin {
         String username = mainFrame.usernameField.getText().trim();
         String password = new String(mainFrame.passwordField.getPassword());
         boolean selectedIsAdmin = mainFrame.adminRole.isSelected();
-
+        boolean selectedIsEmployee = mainFrame.employeeRole.isSelected();
         if (username.isEmpty() || password.isEmpty()) {
-            mainFrame.messageLabel.setText("Please enter both username and password.");
+            javax.swing.JOptionPane.showMessageDialog(mainFrame, "Fields cannot be empty.", "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         User user = mainFrame.userMap.get(username);
 
-        if (user == null || !user.getPassword().equals(password) || user.isAdmin() != selectedIsAdmin) {
-            mainFrame.messageLabel.setText("Invalid credentials for the selected role.");
+        if (user == null
+            || !user.getPassword().equals(password)
+            || user.isAdmin() != selectedIsAdmin
+            || user.isEmployee() != selectedIsEmployee) {
+             javax.swing.JOptionPane.showMessageDialog(mainFrame, "Invalid username or password.", "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
             mainFrame.passwordField.setText("");
             return;
         }

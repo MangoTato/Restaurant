@@ -1,672 +1,373 @@
 import java.awt.*;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.*;
 
 public class Staff extends JPanel {
+    private static final Color DIRECTORY_ACCENT = Frame.ACCENT;
 
     private final Frame mainFrame;
 
     private JPanel contentPanel;
-
     private JTable staffTable;
-
     private DefaultTableModel tableModel;
-
     private JTable archiveTable;
-
     private DefaultTableModel archiveTableModel;
-
     private JTextField searchField;
-
     private JComboBox<String> typeFilter;
+    private JLabel staffCount;
+    private JLabel archiveCount;
+    private TableRowSorter<DefaultTableModel> staffSorter;
 
-    private JComboBox<String> rowsCombo;
+    private final Map<Object, String> emailByStaffId = new HashMap<>();
+    private int staffLoadGeneration;
+    private int archiveLoadGeneration;
 
-    private int nextStaffId = 1;
+    private static final class StaffRecord {
+        private final Object id;
+        private final String email;
+        private final Object[] values;
+
+        private StaffRecord(Object id, String email, Object[] values) {
+            this.id = id;
+            this.email = email;
+            this.values = values;
+        }
+    }
 
     public Staff(Frame mainFrame) {
-
         this.mainFrame = mainFrame;
-
     }
 
     public JPanel showStaff() {
 
-        JPanel card = new JPanel(
-            new BorderLayout()
-        );
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(225, 220, 239)), new EmptyBorder(20, 24, 20, 24)));
 
-        card.setBackground(
-            Color.WHITE
-        );
+        card.setMinimumSize(new Dimension(0, 0));
 
-        card.setBorder(
-            BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(
-                    Frame.NAVY,
-                    2
-                ),
-                new EmptyBorder(
-                    20,
-                    25,
-                    20,
-                    25
-                )
-            )
-        );
-
-        card.setPreferredSize(
-            new Dimension(
-                1100,
-                680
-            )
-        );
-
-        JLabel title = mainFrame.createLabel(
-            "Staff",
-            25,
-            Frame.NAVY
-        );
-
-        JPanel titlePanel = new JPanel(
-            new FlowLayout(
-                FlowLayout.LEFT,
-                0,
-                0
-            )
-        );
-
+        JPanel titlePanel = new JPanel();
+        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
         titlePanel.setOpaque(false);
-
+        JLabel title = new JLabel("Staff directory");
+        title.setFont(new Font("SansSerif", Font.BOLD, 24));
+        title.setForeground(DIRECTORY_ACCENT);
+        JLabel subtitle = new JLabel("Manage staff profiles, roles, and access status");
+        subtitle.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        subtitle.setForeground(Frame.MUTED);
         titlePanel.add(title);
+        titlePanel.add(Box.createVerticalStrut(3));
+        titlePanel.add(subtitle);
+        titlePanel.setBorder(new EmptyBorder(0, 0, 12, 0));
 
-        card.add(
-            titlePanel,
-            BorderLayout.NORTH
-        );
+        card.add(titlePanel, BorderLayout.NORTH);
 
-        contentPanel = new JPanel(
-            new BorderLayout(
-                0,
-                10
-            )
-        );
+        contentPanel = new JPanel(new BorderLayout(0, 12));
+        contentPanel.setBackground(Color.WHITE);
 
-        contentPanel.setBackground(
-            Color.WHITE
-        );
-
-        card.add(
-            contentPanel,
-            BorderLayout.CENTER
-        );
+        card.add(contentPanel, BorderLayout.CENTER);
 
         showStaffList();
 
         return card;
-
     }
 
     private void showStaffList() {
 
         contentPanel.removeAll();
 
-        JPanel topArea = new JPanel(
-            new FlowLayout(
-                FlowLayout.LEFT,
-                8,
-                0
-            )
-        );
-
+        JPanel topArea = new JPanel(new BorderLayout());
         topArea.setOpaque(false);
 
-        JButton staffListButton =
-            createTopButton(
-                "Staff List"
-            );
+        JPanel tabs = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        tabs.setOpaque(false);
+        JButton staffListButton = createTopButton("Staff list");
+        JButton archiveButton = createTopButton("Archived");
+        styleStaffTabButton(staffListButton, true);
+        styleStaffTabButton(archiveButton, false);
+        tabs.add(staffListButton);
+        tabs.add(archiveButton);
+        topArea.add(tabs, BorderLayout.WEST);
+        staffCount = new JLabel("Loading staff...");
+        staffCount.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        staffCount.setForeground(Frame.MUTED);
+        topArea.add(staffCount, BorderLayout.EAST);
+        contentPanel.add(topArea, BorderLayout.NORTH);
 
-        JButton archiveButton =
-            createTopButton(
-                "Archive"
-            );
-
-        staffListButton.setBackground(
-            Frame.TEAL
-        );
-
-        topArea.add(
-            staffListButton
-        );
-
-        topArea.add(
-            archiveButton
-        );
-
-        contentPanel.add(
-            topArea,
-            BorderLayout.NORTH
-        );
-
-        JPanel tableArea = new JPanel(
-            new BorderLayout(
-                0,
-                10
-            )
-        );
-
-        tableArea.setBackground(
-            Color.WHITE
-        );
+        JPanel tableArea = new JPanel(new BorderLayout(0, 10));
+        tableArea.setBackground(Color.WHITE);
 
         JPanel toolbar = createToolbar();
-
-        tableArea.add(
-            toolbar,
-            BorderLayout.NORTH
-        );
+        tableArea.add(toolbar, BorderLayout.NORTH);
 
         createStaffTable();
 
-        JScrollPane scrollPane =
-            new JScrollPane(
-                staffTable
-            );
+        JScrollPane scrollPane = new JScrollPane(staffTable);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
 
-        scrollPane.setBorder(
-            BorderFactory.createLineBorder(
-                new Color(
-                    220,
-                    220,
-                    220
-                )
-            )
-        );
+        tableArea.add(scrollPane, BorderLayout.CENTER);
 
-        tableArea.add(
-            scrollPane,
-            BorderLayout.CENTER
-        );
+        contentPanel.add(tableArea, BorderLayout.CENTER);
 
-        contentPanel.add(
-            tableArea,
-            BorderLayout.CENTER
-        );
-
-        staffListButton.addActionListener(
-            e -> showStaffList()
-        );
-
-        archiveButton.addActionListener(
-            e -> showArchive()
-        );
+        staffListButton.addActionListener(e -> showStaffList());
+        archiveButton.addActionListener(e -> showArchive());
 
         contentPanel.revalidate();
-
         contentPanel.repaint();
+    }
 
+    private void loadStaff(boolean archived) {
+        DefaultTableModel destination;
+        int generation;
+
+        if (archived) {
+            if (archiveTableModel == null) {
+                createArchiveModel();
+            }
+            destination = archiveTableModel;
+            generation = ++archiveLoadGeneration;
+        } else {
+            destination = tableModel;
+            generation = ++staffLoadGeneration;
+            emailByStaffId.clear();
+        }
+        destination.setRowCount(0);
+
+        String sql = "SELECT * FROM employee " + (archived ? "WHERE LOWER(status) = 'archived' "
+                : "WHERE status IS NULL OR LOWER(status) <> 'archived' ") + "ORDER BY employee_id";
+
+        new SwingWorker<java.util.List<StaffRecord>, Void>() {
+            @Override
+            protected java.util.List<StaffRecord> doInBackground() throws SQLException {
+                java.util.List<StaffRecord> records = new ArrayList<>();
+                try (Connection connection = database.getConnection();
+                        PreparedStatement statement = connection.prepareStatement(sql);
+                        ResultSet results = statement.executeQuery()) {
+                    while (results.next()) {
+                        Object id = results.getObject("employee_id");
+                        String email = results.getString("email");
+                        Object[] row = { id, fullName(results.getString("first_name"), results.getString("last_name")),
+                                results.getString("role"), results.getString("phone_number"), email };
+                        if (!archived) {
+                            row = new Object[] { row[0], row[1], row[2], row[3], row[4],
+                                    results.getString("status"), "" };
+                        } else {
+                            row = new Object[] { row[0], row[1], row[2], row[3], row[4],
+                                    results.getString("status"), "" };
+                        }
+                        records.add(new StaffRecord(id, email == null ? "" : email, row));
+                    }
+                }
+                return records;
+            }
+
+            @Override
+            protected void done() {
+                int currentGeneration = archived ? archiveLoadGeneration : staffLoadGeneration;
+                if (generation != currentGeneration) {
+                    return;
+                }
+
+                try {
+                    for (StaffRecord record : get()) {
+                        destination.addRow(record.values);
+                        if (!archived) {
+                            emailByStaffId.put(record.id, record.email);
+                        }
+                    }
+                    if (!archived && staffCount != null) {
+                        staffCount.setText(destination.getRowCount()
+                                + (destination.getRowCount() == 1 ? " staff member" : " staff members"));
+                    } else if (archived && archiveCount != null) {
+                        archiveCount.setText(destination.getRowCount()
+                                + (destination.getRowCount() == 1 ? " archived staff member"
+                                        : " archived staff members"));
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Staff loading was interrupted.", e);
+                } catch (java.util.concurrent.ExecutionException e) {
+                    Throwable cause = e.getCause();
+                    if (cause instanceof SQLException) {
+                        showDatabaseError("load staff", (SQLException) cause);
+                    } else {
+                        throw new IllegalStateException("Unable to load staff.", cause);
+                    }
+                }
+            }
+        }.execute();
+    }
+
+    private String fullName(String firstName, String lastName) {
+        String first = firstName == null ? "" : firstName.trim();
+        String last = lastName == null ? "" : lastName.trim();
+        return (first + " " + last).trim();
+    }
+
+    private String[] splitName(String name) {
+        String trimmedName = name.trim();
+        int separator = trimmedName.indexOf(' ');
+        if (separator < 0) {
+            return new String[] { trimmedName, "" };
+        }
+        return new String[] { trimmedName.substring(0, separator), trimmedName.substring(separator + 1).trim() };
+    }
+
+    private void showDatabaseError(String action, SQLException error) {
+        JOptionPane.showMessageDialog(mainFrame, "Unable to " + action + " in the database:\n" + error.getMessage(),
+                "Database Error", JOptionPane.ERROR_MESSAGE);
     }
 
     private JPanel createToolbar() {
 
-        JPanel toolbar = new JPanel(
-            new BorderLayout()
-        );
-
+        JPanel toolbar = new JPanel(new BorderLayout());
         toolbar.setOpaque(false);
 
-        JButton addButton =
-            new JButton("+");
-
-        addButton.setFont(
-            new Font(
-                "SansSerif",
-                Font.BOLD,
-                15
-            )
-        );
-
-        addButton.setForeground(
-            Color.WHITE
-        );
-
-        addButton.setBackground(
-            Frame.TEAL
-        );
-
+        JButton addButton = new JButton("+");
+        addButton.setFont(new Font("SansSerif", Font.BOLD, 15));
+        Frame.styleButtonState(addButton, false);
         addButton.setFocusPainted(false);
-
         addButton.setBorderPainted(false);
+        addButton.setPreferredSize(new Dimension(42, 42));
+        addButton.addActionListener(e -> addStaff());
 
-        addButton.setPreferredSize(
-            new Dimension(
-                42,
-                42
-            )
-        );
-
-        addButton.addActionListener(
-            e -> addStaff()
-        );
-
-        JPanel addPanel = new JPanel(
-            new FlowLayout(
-                FlowLayout.LEFT,
-                5,
-                0
-            )
-        );
+        JPanel addPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
 
         addPanel.setOpaque(false);
 
-        addPanel.add(
-            addButton
-        );
+        addPanel.add(addButton);
 
-        toolbar.add(
-            addPanel,
-            BorderLayout.WEST
-        );
+        toolbar.add(addPanel, BorderLayout.WEST);
 
-        JPanel searchPanel = new JPanel(
-            new FlowLayout(
-                FlowLayout.RIGHT,
-                5,
-                0
-            )
-        );
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
 
         searchPanel.setOpaque(false);
 
-        rowsCombo =
-            new JComboBox<>(
-                new String[] {
-                    "10",
-                    "25",
-                    "50",
-                    "100"
-                }
-            );
+        typeFilter = new JComboBox<>(new String[] { "All", "Cashier", "Waiter", "Manager", "Chef" });
+        typeFilter.setPreferredSize(new Dimension(125, 32));
+        typeFilter.setBackground(Color.WHITE);
+        typeFilter.setForeground(DIRECTORY_ACCENT);
 
-        rowsCombo.setPreferredSize(
-            new Dimension(
-                55,
-                30
-            )
-        );
+        searchField = new JTextField();
+        searchField.setPreferredSize(new Dimension(190, 32));
+        searchField.setToolTipText("Search staff");
 
-        typeFilter =
-            new JComboBox<>(
-                new String[] {
-                    "All",
-                    "Cashier",
-                    "Waiter",
-                    "Manager",
-                    "Chef"
-                }
-            );
+        JButton searchButton = createTopButton("Search");
+        searchButton.setPreferredSize(new Dimension(82, 32));
 
-        typeFilter.setPreferredSize(
-            new Dimension(
-                100,
-                30
-            )
-        );
+        searchPanel.add(typeFilter);
+        searchPanel.add(searchField);
+        searchPanel.add(searchButton);
 
-        searchField =
-            new JTextField();
+        toolbar.add(searchPanel, BorderLayout.EAST);
 
-        searchField.setPreferredSize(
-            new Dimension(
-                160,
-                30
-            )
-        );
-
-        searchField.setToolTipText(
-            "Search staff"
-        );
-
-        JButton searchButton =
-            new JButton(
-                "Search"
-            );
-
-        searchButton.setPreferredSize(
-            new Dimension(
-                75,
-                30
-            )
-        );
-
-        searchButton.setFocusPainted(false);
-
-        searchPanel.add(
-            rowsCombo
-        );
-
-        searchPanel.add(
-            typeFilter
-        );
-
-        searchPanel.add(
-            searchField
-        );
-
-        searchPanel.add(
-            searchButton
-        );
-
-        toolbar.add(
-            searchPanel,
-            BorderLayout.EAST
-        );
-
-        searchButton.addActionListener(
-            e -> searchStaff()
-        );
-
-        searchField.addActionListener(
-            e -> searchStaff()
-        );
-
-        typeFilter.addActionListener(
-            e -> filterStaff()
-        );
-
-        rowsCombo.addActionListener(
-            e -> updateRowLimit()
-        );
+        searchButton.addActionListener(e -> searchStaff());
+        searchField.addActionListener(e -> searchStaff());
+        typeFilter.addActionListener(e -> filterStaff());
 
         return toolbar;
-
     }
 
     private void createStaffTable() {
 
-        String[] columns = {
-            "ID#",
-            "Staff Name",
-            "Type",
-            "Phone",
-            "Status",
-            "Actions"
+        String[] columns = { "ID#", "Staff Name", "Type", "Phone", "Email", "Status", "Actions" };
+
+        tableModel = new DefaultTableModel(columns, 0) {
+
+            @Override
+            public boolean isCellEditable(int row, int column) {
+
+                return column == getColumnCount() - 1;
+            }
         };
 
-        tableModel =
-            new DefaultTableModel(
-                columns,
-                0
-            ) {
+        loadStaff(false);
 
-                @Override
-                public boolean isCellEditable(
-                    int row,
-                    int column
-                ) {
+        staffTable = new JTable(tableModel);
 
-                    return column == 5;
+        staffTable.setRowHeight(38);
 
+        staffTable.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        staffTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 12));
+
+        staffTable.getTableHeader().setBackground(new Color(244, 240, 231));
+
+        staffTable.getTableHeader().setForeground(DIRECTORY_ACCENT);
+        staffTable.getTableHeader().setPreferredSize(new Dimension(0, 36));
+
+        staffTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        staffTable.setGridColor(Frame.BORDER);
+
+        staffTable.setShowVerticalLines(false);
+        staffTable.setIntercellSpacing(new Dimension(0, 1));
+        staffTable.setFillsViewportHeight(true);
+
+        staffTable.setBackground(Color.WHITE);
+        staffSorter = new TableRowSorter<>(tableModel);
+        staffTable.setRowSorter(staffSorter);
+
+        TableColumnModel columnModel = staffTable.getColumnModel();
+
+        columnModel.getColumn(0).setPreferredWidth(50);
+
+        columnModel.getColumn(1).setPreferredWidth(250);
+
+        columnModel.getColumn(2).setPreferredWidth(150);
+
+        columnModel.getColumn(3).setPreferredWidth(180);
+
+        columnModel.getColumn(4).setPreferredWidth(220);
+        columnModel.getColumn(5).setPreferredWidth(120);
+        columnModel.getColumn(6).setPreferredWidth(160);
+
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+
+        columnModel.getColumn(0).setCellRenderer(centerRenderer);
+
+        columnModel.getColumn(2).setCellRenderer(centerRenderer);
+
+        columnModel.getColumn(3).setCellRenderer(centerRenderer);
+
+        columnModel.getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
+
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                    boolean hasFocus, int row, int column) {
+
+                JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row,
+                        column);
+
+                label.setHorizontalAlignment(SwingConstants.CENTER);
+
+                if ("Active".equals(value)) {
+
+                    label.setForeground(new Color(35, 130, 80));
+
+                } else {
+
+                    label.setForeground(new Color(184, 78, 78));
                 }
 
-            };
-
-        /*
-         * Temporary in-memory staff data.
-         * These records exist only while the
-         * application is running.
-         */
-
-        addMemoryStaff(
-            "ABC",
-            "Waiter",
-            "",
-            "Active"
-        );
-
-        addMemoryStaff(
-            "Raza",
-            "Waiter",
-            "",
-            "Active"
-        );
-
-        addMemoryStaff(
-            "Bilal",
-            "Waiter",
-            "",
-            "Active"
-        );
-
-        addMemoryStaff(
-            "Waqar",
-            "Cashier",
-            "0345-4180138",
-            "Active"
-        );
-
-        staffTable =
-            new JTable(
-                tableModel
-            );
-
-        staffTable.setRowHeight(
-            38
-        );
-
-        staffTable.setFont(
-            new Font(
-                "SansSerif",
-                Font.PLAIN,
-                12
-            )
-        );
-
-        staffTable.getTableHeader().setFont(
-            new Font(
-                "SansSerif",
-                Font.BOLD,
-                12
-            )
-        );
-
-        staffTable.getTableHeader().setBackground(
-            new Color(
-                235,
-                237,
-                242
-            )
-        );
-
-        staffTable.getTableHeader().setForeground(
-            Color.DARK_GRAY
-        );
-
-        staffTable.setSelectionMode(
-            ListSelectionModel.SINGLE_SELECTION
-        );
-
-        staffTable.setGridColor(
-            new Color(
-                225,
-                225,
-                225
-            )
-        );
-
-        staffTable.setShowVerticalLines(
-            false
-        );
-
-        staffTable.setBackground(
-            Color.WHITE
-        );
-
-        TableColumnModel columnModel =
-            staffTable.getColumnModel();
-
-        columnModel.getColumn(0).setPreferredWidth(
-            50
-        );
-
-        columnModel.getColumn(1).setPreferredWidth(
-            250
-        );
-
-        columnModel.getColumn(2).setPreferredWidth(
-            150
-        );
-
-        columnModel.getColumn(3).setPreferredWidth(
-            180
-        );
-
-        columnModel.getColumn(4).setPreferredWidth(
-            150
-        );
-
-        columnModel.getColumn(5).setPreferredWidth(
-            160
-        );
-
-        DefaultTableCellRenderer centerRenderer =
-            new DefaultTableCellRenderer();
-
-        centerRenderer.setHorizontalAlignment(
-            SwingConstants.CENTER
-        );
-
-        columnModel.getColumn(0).setCellRenderer(
-            centerRenderer
-        );
-
-        columnModel.getColumn(2).setCellRenderer(
-            centerRenderer
-        );
-
-        columnModel.getColumn(3).setCellRenderer(
-            centerRenderer
-        );
-
-        columnModel.getColumn(4).setCellRenderer(
-            new DefaultTableCellRenderer() {
-
-                @Override
-                public Component getTableCellRendererComponent(
-
-                    JTable table,
-
-                    Object value,
-
-                    boolean isSelected,
-
-                    boolean hasFocus,
-
-                    int row,
-
-                    int column
-
-                ) {
-
-                    JLabel label =
-                        (JLabel)
-                        super.getTableCellRendererComponent(
-
-                            table,
-
-                            value,
-
-                            isSelected,
-
-                            hasFocus,
-
-                            row,
-
-                            column
-
-                        );
-
-                    label.setHorizontalAlignment(
-                        SwingConstants.CENTER
-                    );
-
-                    if (
-                        "Active".equals(
-                            value
-                        )
-                    ) {
-
-                        label.setForeground(
-                            new Color(
-                                30,
-                                150,
-                                80
-                            )
-                        );
-
-                    } else {
-
-                        label.setForeground(
-                            Color.RED
-                        );
-
-                    }
-
-                    return label;
-
-                }
-
+                return label;
             }
-        );
+        });
 
-        columnModel.getColumn(5).setCellRenderer(
-            new ActionRenderer()
-        );
+        columnModel.getColumn(6).setCellRenderer(new ActionRenderer());
 
-        columnModel.getColumn(5).setCellEditor(
-            new ActionEditor()
-        );
-
+        columnModel.getColumn(6).setCellEditor(new ActionEditor());
     }
 
-    private void addMemoryStaff(
-
-        String name,
-
-        String type,
-
-        String phone,
-
-        String status
-
-    ) {
-
-        tableModel.addRow(
-            new Object[] {
-
-                nextStaffId++,
-
-                name,
-
-                type,
-
-                phone,
-
-                status,
-
-                ""
-
-            }
-        );
-
-    }
-
-    private class ActionRenderer
-
-        extends JPanel
-
-        implements TableCellRenderer {
+    private class ActionRenderer extends JPanel implements TableCellRenderer {
 
         private final JButton editButton;
 
@@ -674,94 +375,34 @@ public class Staff extends JPanel {
 
         public ActionRenderer() {
 
-            setLayout(
-                new FlowLayout(
-                    FlowLayout.CENTER,
-                    5,
-                    4
-                )
-            );
+            setLayout(new FlowLayout(FlowLayout.CENTER, 5, 4));
 
-            setBackground(
-                Color.WHITE
-            );
+            setBackground(Color.WHITE);
 
-            editButton =
-                new JButton(
-                    "Edit"
-                );
+            editButton = new JButton("Edit");
 
-            archiveButton =
-                new JButton(
-                    "Archive"
-                );
+            archiveButton = new JButton("Archive");
 
-            styleActionButton(
-                editButton,
-                new Color(
-                    255,
-                    193,
-                    7
-                )
-            );
+            styleActionButton(editButton, Frame.ACCENT_DARK);
 
-            styleActionButton(
-                archiveButton,
-                new Color(
-                    70,
-                    145,
-                    210
-                )
-            );
+            styleActionButton(archiveButton, Frame.NAVY);
 
-            add(
-                editButton
-            );
+            add(editButton);
 
-            add(
-                archiveButton
-            );
-
+            add(archiveButton);
         }
 
         @Override
-        public Component getTableCellRendererComponent(
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+                int row, int column) {
 
-            JTable table,
-
-            Object value,
-
-            boolean isSelected,
-
-            boolean hasFocus,
-
-            int row,
-
-            int column
-
-        ) {
-
-            setBackground(
-
-                isSelected
-
-                    ? table.getSelectionBackground()
-
-                    : Color.WHITE
-
-            );
+            setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
 
             return this;
-
         }
-
     }
 
-    private class ActionEditor
-
-        extends DefaultCellEditor
-
-        implements TableCellEditor {
+    private class ActionEditor extends DefaultCellEditor {
 
         private final JPanel panel;
 
@@ -773,1214 +414,512 @@ public class Staff extends JPanel {
 
         public ActionEditor() {
 
-            super(
-                new JTextField()
-            );
+            super(new JTextField());
 
-            setClickCountToStart(
-                1
-            );
+            setClickCountToStart(1);
 
-            panel = new JPanel(
-                new FlowLayout(
-                    FlowLayout.CENTER,
-                    5,
-                    4
-                )
-            );
+            panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 4));
 
-            panel.setBackground(
-                Color.WHITE
-            );
+            panel.setBackground(Color.WHITE);
 
-            editButton =
-                new JButton(
-                    "Edit"
-                );
+            editButton = new JButton("Edit");
 
-            archiveButton =
-                new JButton(
-                    "Archive"
-                );
+            archiveButton = new JButton("Archive");
 
-            styleActionButton(
-                editButton,
-                new Color(
-                    255,
-                    193,
-                    7
-                )
-            );
+            styleActionButton(editButton, Frame.ACCENT_DARK);
 
-            styleActionButton(
-                archiveButton,
-                new Color(
-                    70,
-                    145,
-                    210
-                )
-            );
+            styleActionButton(archiveButton, Frame.NAVY);
 
-            panel.add(
-                editButton
-            );
+            panel.add(editButton);
 
-            panel.add(
-                archiveButton
-            );
+            panel.add(archiveButton);
 
-            editButton.addActionListener(
-                e -> {
+            editButton.addActionListener(e -> {
+                fireEditingStopped();
 
-                    fireEditingStopped();
+                editStaff(currentRow);
+            });
 
-                    editStaff(
-                        currentRow
-                    );
+            archiveButton.addActionListener(e -> {
+                fireEditingStopped();
 
-                }
-            );
-
-            archiveButton.addActionListener(
-                e -> {
-
-                    fireEditingStopped();
-
-                    archiveStaff(
-                        currentRow
-                    );
-
-                }
-            );
-
+                archiveStaff(currentRow);
+            });
         }
 
         @Override
-        public Component getTableCellEditorComponent(
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row,
+                int column) {
 
-            JTable table,
-
-            Object value,
-
-            boolean isSelected,
-
-            int row,
-
-            int column
-
-        ) {
-
-            currentRow = row;
+            currentRow = table.convertRowIndexToModel(row);
 
             return panel;
-
         }
 
         @Override
         public Object getCellEditorValue() {
 
             return "";
-
         }
-
     }
 
-    private void styleActionButton(
+    private void styleActionButton(JButton button, Color color) {
 
-        JButton button,
+        button.setFont(new Font("SansSerif", Font.BOLD, 11));
 
-        Color color
-
-    ) {
-
-        button.setFont(
-            new Font(
-                "SansSerif",
-                Font.BOLD,
-                11
-            )
-        );
-
-        button.setForeground(
-            Color.WHITE
-        );
-
-        button.setBackground(
-            color
-        );
+        Frame.styleButtonState(button, false);
 
         button.setFocusPainted(false);
-
-        button.setBorderPainted(false);
-
-        button.setMargin(
-            new Insets(
-                2,
-                7,
-                2,
-                7
-            )
-        );
-
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setOpaque(true);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Frame.ACCENT),
+                new EmptyBorder(4, 8, 4, 8)));
     }
 
-    private JButton createTopButton(
+    private JButton createTopButton(String text) {
 
-        String text
+        JButton button = new JButton(text);
 
-    ) {
+        button.setFont(new Font("SansSerif", Font.BOLD, 13));
 
-        JButton button =
-            new JButton(
-                text
-            );
-
-        button.setFont(
-            new Font(
-                "SansSerif",
-                Font.BOLD,
-                13
-            )
-        );
-
-        button.setForeground(
-            Color.WHITE
-        );
-
-        button.setBackground(
-            Frame.NAVY
-        );
+        Frame.styleButtonState(button, false);
 
         button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setOpaque(true);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Frame.ACCENT),
+                new EmptyBorder(7, 12, 7, 12)));
 
-        button.setBorderPainted(false);
-
-        button.setPreferredSize(
-            new Dimension(
-                125,
-                38
-            )
-        );
+        button.setPreferredSize(new Dimension(125, 38));
 
         return button;
+    }
 
+    private void styleStaffTabButton(JButton button, boolean selected) {
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        Frame.styleButtonState(button, selected);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(selected ? Frame.ACCENT : Frame.BORDER),
+                new EmptyBorder(7, 12, 7, 12)));
     }
 
     private void addStaff() {
 
-        JTextField nameField =
-            new JTextField();
+        JTextField nameField = new JTextField();
 
-        JComboBox<String> typeBox =
-            new JComboBox<>(
-                new String[] {
-                    "Waiter",
-                    "Cashier",
-                    "Manager",
-                    "Chef"
-                }
-            );
+        JComboBox<String> typeBox = new JComboBox<>(new String[] { "Waiter", "Cashier", "Manager", "Chef" });
 
-        JTextField phoneField =
-            new JTextField();
+        JTextField phoneField = new JTextField();
 
-        JComboBox<String> statusBox =
-            new JComboBox<>(
-                new String[] {
-                    "Active",
-                    "Inactive"
-                }
-            );
+        JTextField emailField = new JTextField();
 
-        JPanel form = new JPanel(
-            new GridLayout(
-                4,
-                2,
-                8,
-                8
-            )
-        );
+        JComboBox<String> statusBox = new JComboBox<>(new String[] { "Active", "Inactive" });
 
-        form.add(
-            new JLabel(
-                "Staff Name:"
-            )
-        );
+        JPanel form = new JPanel(new GridLayout(5, 2, 8, 8));
 
-        form.add(
-            nameField
-        );
+        form.add(new JLabel("Staff Name:"));
 
-        form.add(
-            new JLabel(
-                "Type:"
-            )
-        );
+        form.add(nameField);
 
-        form.add(
-            typeBox
-        );
+        form.add(new JLabel("Type:"));
 
-        form.add(
-            new JLabel(
-                "Phone:"
-            )
-        );
+        form.add(typeBox);
 
-        form.add(
-            phoneField
-        );
+        form.add(new JLabel("Email:"));
 
-        form.add(
-            new JLabel(
-                "Status:"
-            )
-        );
+        form.add(emailField);
 
-        form.add(
-            statusBox
-        );
+        form.add(new JLabel("Phone:"));
 
-        int result =
-            JOptionPane.showConfirmDialog(
+        form.add(phoneField);
 
-                mainFrame,
+        form.add(new JLabel("Status:"));
 
-                form,
+        form.add(statusBox);
 
-                "Add Staff",
+        int result = JOptionPane.showConfirmDialog(mainFrame, form, "Add Staff", JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
 
-                JOptionPane.OK_CANCEL_OPTION,
-
-                JOptionPane.PLAIN_MESSAGE
-
-            );
-
-        if (
-            result !=
-            JOptionPane.OK_OPTION
-        ) {
+        if (result != JOptionPane.OK_OPTION) {
 
             return;
-
         }
 
-        String name =
-            nameField
-                .getText()
-                .trim();
+        String name = nameField.getText().trim();
 
-        String phone =
-            phoneField
-                .getText()
-                .trim();
+        String phone = phoneField.getText().trim();
 
-        if (name.isEmpty()) {
+        String email = emailField.getText().trim();
 
-            JOptionPane.showMessageDialog(
+        if (name.isEmpty() || email.isEmpty()) {
 
-                mainFrame,
-
-                "Please enter the staff name.",
-
-                "Invalid Input",
-
-                JOptionPane.WARNING_MESSAGE
-
-            );
+            JOptionPane.showMessageDialog(mainFrame, "Please enter the staff name and email.", "Invalid Input",
+                    JOptionPane.WARNING_MESSAGE);
 
             return;
-
         }
 
-        tableModel.addRow(
-            new Object[] {
+        String[] names = splitName(name);
+        String sql = "INSERT INTO employee " + "(first_name, last_name, email, phone_number, role, status) "
+                + "VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection connection = database.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, names[0]);
+            statement.setString(2, names[1]);
+            statement.setString(3, email);
+            statement.setString(4, phone);
+            statement.setString(5, String.valueOf(typeBox.getSelectedItem()));
+            statement.setString(6, String.valueOf(statusBox.getSelectedItem()));
+            statement.executeUpdate();
+            loadStaff(false);
+        } catch (SQLException e) {
+            showDatabaseError("add staff", e);
+        }
+    }
 
-                nextStaffId++,
+    private void editStaff(int row) {
 
-                name,
+        if (row < 0 || row >= tableModel.getRowCount()) {
 
-                typeBox.getSelectedItem(),
+            return;
+        }
 
-                phone,
+        JTextField nameField = new JTextField(String.valueOf(tableModel.getValueAt(row, 1)));
 
-                statusBox.getSelectedItem(),
+        JComboBox<String> typeBox = new JComboBox<>(new String[] { "Waiter", "Cashier", "Manager", "Chef" });
 
-                ""
+        typeBox.setSelectedItem(tableModel.getValueAt(row, 2));
 
+        JTextField phoneField = new JTextField(String.valueOf(tableModel.getValueAt(row, 3)));
+
+        JTextField emailField = new JTextField(emailByStaffId.getOrDefault(tableModel.getValueAt(row, 0), ""));
+
+        JComboBox<String> statusBox = new JComboBox<>(new String[] { "Active", "Inactive" });
+
+        statusBox.setSelectedItem(tableModel.getValueAt(row, 5));
+
+        JPanel form = new JPanel(new GridLayout(5, 2, 8, 8));
+
+        form.add(new JLabel("Staff Name:"));
+
+        form.add(nameField);
+
+        form.add(new JLabel("Type:"));
+
+        form.add(typeBox);
+
+        form.add(new JLabel("Email:"));
+
+        form.add(emailField);
+
+        form.add(new JLabel("Phone:"));
+
+        form.add(phoneField);
+
+        form.add(new JLabel("Status:"));
+
+        form.add(statusBox);
+
+        int result = JOptionPane.showConfirmDialog(mainFrame, form, "Modify Staff", JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+
+        if (result != JOptionPane.OK_OPTION) {
+
+            return;
+        }
+
+        String name = nameField.getText().trim();
+
+        String email = emailField.getText().trim();
+
+        if (name.isEmpty() || email.isEmpty()) {
+
+            JOptionPane.showMessageDialog(mainFrame, "Staff name and email cannot be empty.", "Invalid Input",
+                    JOptionPane.WARNING_MESSAGE);
+
+            return;
+        }
+
+        String[] names = splitName(name);
+        Object id = tableModel.getValueAt(row, 0);
+        String sql = "UPDATE employee SET first_name = ?, last_name = ?, "
+                + "email = ?, phone_number = ?, role = ?, status = ? " + "WHERE employee_id = ?";
+        try (Connection connection = database.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, names[0]);
+            statement.setString(2, names[1]);
+            statement.setString(3, email);
+            statement.setString(4, phoneField.getText().trim());
+            statement.setString(5, String.valueOf(typeBox.getSelectedItem()));
+            statement.setString(6, String.valueOf(statusBox.getSelectedItem()));
+            statement.setObject(7, id);
+            int updated = statement.executeUpdate();
+            if (updated == 0) {
+                JOptionPane.showMessageDialog(mainFrame,
+                        "This staff record no longer exists. Refresh the staff list and try again.", "Staff Not Found",
+                        JOptionPane.WARNING_MESSAGE);
+                loadStaff(false);
+                return;
             }
-        );
-
+            loadStaff(false);
+        } catch (SQLException e) {
+            showDatabaseError("update staff", e);
+        }
     }
 
-    private void editStaff(
+    private void archiveStaff(int row) {
 
-        int row
-
-    ) {
-
-        if (
-
-            row < 0 ||
-
-            row >= tableModel.getRowCount()
-
-        ) {
+        if (row < 0 || row >= tableModel.getRowCount()) {
 
             return;
-
         }
 
-        JTextField nameField =
-            new JTextField(
+        String name = String.valueOf(tableModel.getValueAt(row, 1));
 
-                String.valueOf(
+        int result = JOptionPane.showConfirmDialog(mainFrame, "Are you sure you want to Archive " + name + "?",
+                "Archive Staff", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
-                    tableModel.getValueAt(
-                        row,
-                        1
-                    )
-
-                )
-
-            );
-
-        JComboBox<String> typeBox =
-            new JComboBox<>(
-                new String[] {
-                    "Waiter",
-                    "Cashier",
-                    "Manager",
-                    "Chef"
-                }
-            );
-
-        typeBox.setSelectedItem(
-            tableModel.getValueAt(
-                row,
-                2
-            )
-        );
-
-        JTextField phoneField =
-            new JTextField(
-
-                String.valueOf(
-
-                    tableModel.getValueAt(
-                        row,
-                        3
-                    )
-
-                )
-
-            );
-
-        JComboBox<String> statusBox =
-            new JComboBox<>(
-                new String[] {
-                    "Active",
-                    "Inactive"
-                }
-            );
-
-        statusBox.setSelectedItem(
-            tableModel.getValueAt(
-                row,
-                4
-            )
-        );
-
-        JPanel form = new JPanel(
-            new GridLayout(
-                4,
-                2,
-                8,
-                8
-            )
-        );
-
-        form.add(
-            new JLabel(
-                "Staff Name:"
-            )
-        );
-
-        form.add(
-            nameField
-        );
-
-        form.add(
-            new JLabel(
-                "Type:"
-            )
-        );
-
-        form.add(
-            typeBox
-        );
-
-        form.add(
-            new JLabel(
-                "Phone:"
-            )
-        );
-
-        form.add(
-            phoneField
-        );
-
-        form.add(
-            new JLabel(
-                "Status:"
-            )
-        );
-
-        form.add(
-            statusBox
-        );
-
-        int result =
-            JOptionPane.showConfirmDialog(
-
-                mainFrame,
-
-                form,
-
-                "Modify Staff",
-
-                JOptionPane.OK_CANCEL_OPTION,
-
-                JOptionPane.PLAIN_MESSAGE
-
-            );
-
-        if (
-            result !=
-            JOptionPane.OK_OPTION
-        ) {
+        if (result != JOptionPane.YES_OPTION) {
 
             return;
-
         }
 
-        String name =
-            nameField
-                .getText()
-                .trim();
+        Object id = tableModel.getValueAt(row, 0);
 
-        if (name.isEmpty()) {
-
-            JOptionPane.showMessageDialog(
-
-                mainFrame,
-
-                "Staff name cannot be empty.",
-
-                "Invalid Input",
-
-                JOptionPane.WARNING_MESSAGE
-
-            );
-
-            return;
-
-        }
-
-        tableModel.setValueAt(
-            name,
-            row,
-            1
-        );
-
-        tableModel.setValueAt(
-            typeBox.getSelectedItem(),
-            row,
-            2
-        );
-
-        tableModel.setValueAt(
-            phoneField.getText().trim(),
-            row,
-            3
-        );
-
-        tableModel.setValueAt(
-            statusBox.getSelectedItem(),
-            row,
-            4
-        );
-
-    }
-
-    private void archiveStaff(
-
-        int row
-
-    ) {
-
-        if (
-
-            row < 0 ||
-
-            row >= tableModel.getRowCount()
-
-        ) {
-
-            return;
-
-        }
-
-        String name =
-            String.valueOf(
-
-                tableModel.getValueAt(
-                    row,
-                    1
-                )
-
-            );
-
-        int result =
-            JOptionPane.showConfirmDialog(
-
-                mainFrame,
-
-                "Are you sure you want to Archive "
-                    + name
-                    + "?",
-
-                "Archive Staff",
-
-                JOptionPane.YES_NO_OPTION,
-
-                JOptionPane.WARNING_MESSAGE
-
-            );
-
-        if (
-            result !=
-            JOptionPane.YES_OPTION
-        ) {
-
-            return;
-
-        }
-
-        Object id =
-            tableModel.getValueAt(
-                row,
-                0
-            );
-
-        Object staffName =
-            tableModel.getValueAt(
-                row,
-                1
-            );
-
-        Object type =
-            tableModel.getValueAt(
-                row,
-                2
-            );
-
-        Object phone =
-            tableModel.getValueAt(
-                row,
-                3
-            );
-
-        /*
-         * The important part:
-         * the archived staff gets stored
-         * in a separate memory table.
-         */
-
-        if (
-            archiveTableModel == null
-        ) {
-
-            createArchiveModel();
-
-        }
-
-        archiveTableModel.addRow(
-            new Object[] {
-
-                id,
-
-                staffName,
-
-                type,
-
-                phone,
-
-                "Archived"
-
+        String sql = "UPDATE employee SET status = ? WHERE employee_id = ?";
+        try (Connection connection = database.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, "Archived");
+            statement.setObject(2, id);
+            int updated = statement.executeUpdate();
+            if (updated == 0) {
+                JOptionPane.showMessageDialog(mainFrame,
+                        "This staff record no longer exists. Refresh the staff list and try again.", "Staff Not Found",
+                        JOptionPane.WARNING_MESSAGE);
+                loadStaff(false);
+                return;
             }
-        );
-
-        /*
-         * Remove the staff immediately
-         * from the active staff table.
-         */
-
-        tableModel.removeRow(
-            row
-        );
-
-        renumberStaff();
-
-        JOptionPane.showMessageDialog(
-
-            mainFrame,
-
-            name
-                + " has been archived.",
-
-            "Archive Staff",
-
-            JOptionPane.INFORMATION_MESSAGE
-
-        );
-
-    }
-
-    private void renumberStaff() {
-
-        /*
-         * This only changes the displayed
-         * table numbering. The actual ID
-         * remains unchanged.
-         */
-
-        for (
-
-            int i = 0;
-
-            i < tableModel.getRowCount();
-
-            i++
-
-        ) {
-
-            /*
-             * Do not change the real ID.
-             * The first column is the real ID.
-             */
-
+            loadStaff(false);
+        } catch (SQLException e) {
+            showDatabaseError("archive staff", e);
+            return;
         }
 
+        JOptionPane.showMessageDialog(mainFrame, name + " has been archived.", "Archive Staff",
+                JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void showArchive() {
 
         contentPanel.removeAll();
 
-        JPanel panel = new JPanel(
-            new BorderLayout(
-                0,
-                10
-            )
-        );
+        JPanel panel = new JPanel(new BorderLayout(0, 10));
+        panel.setBackground(Color.WHITE);
 
-        panel.setBackground(
-            Color.WHITE
-        );
-
-        JPanel top = new JPanel(
-            new FlowLayout(
-                FlowLayout.LEFT,
-                8,
-                0
-            )
-        );
-
+        JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
 
-        JButton staffListButton =
-            createTopButton(
-                "Staff List"
-            );
+        JPanel tabs = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        tabs.setOpaque(false);
+        JButton staffListButton = createTopButton("Staff list");
+        JButton archiveButton = createTopButton("Archived");
+        styleStaffTabButton(staffListButton, false);
+        styleStaffTabButton(archiveButton, true);
+        tabs.add(staffListButton);
+        tabs.add(archiveButton);
+        top.add(tabs, BorderLayout.WEST);
+        JLabel archivedCount = new JLabel("Archived staff");
+        archiveCount = archivedCount;
+        archivedCount.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        archivedCount.setForeground(Frame.MUTED);
+        top.add(archivedCount, BorderLayout.EAST);
 
-        JButton archiveButton =
-            createTopButton(
-                "Archive"
-            );
-
-        archiveButton.setBackground(
-            Frame.TEAL
-        );
-
-        top.add(
-            staffListButton
-        );
-
-        top.add(
-            archiveButton
-        );
-
-        panel.add(
-            top,
-            BorderLayout.NORTH
-        );
+        panel.add(top, BorderLayout.NORTH);
 
         createArchiveTable();
+        loadStaff(true);
 
-        JScrollPane scrollPane =
-            new JScrollPane(
-                archiveTable
-            );
+        JScrollPane scrollPane = new JScrollPane(archiveTable);
+        scrollPane.setBorder(BorderFactory.createLineBorder(Frame.BORDER));
 
-        scrollPane.setBorder(
-            BorderFactory.createLineBorder(
-                new Color(
-                    220,
-                    220,
-                    220
-                )
-            )
-        );
+        panel.add(scrollPane, BorderLayout.CENTER);
 
-        panel.add(
-            scrollPane,
-            BorderLayout.CENTER
-        );
+        staffListButton.addActionListener(e -> showStaffList());
 
-        staffListButton.addActionListener(
-            e -> showStaffList()
-        );
-
-        contentPanel.add(
-            panel,
-            BorderLayout.CENTER
-        );
-
+        contentPanel.add(panel, BorderLayout.CENTER);
         contentPanel.revalidate();
-
         contentPanel.repaint();
-
     }
 
     private void createArchiveModel() {
 
-        String[] columns = {
-
-            "ID#",
-
-            "Staff Name",
-
-            "Type",
-
-            "Phone",
-
-            "Status"
-
+        String[] columns = { "ID#", "Staff Name", "Type", "Phone", "Email", "Status", "Actions" };
+        archiveTableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == getColumnCount() - 1;
+            }
         };
-
-        archiveTableModel =
-            new DefaultTableModel(
-                columns,
-                0
-            );
-
     }
 
     private void createArchiveTable() {
 
-        if (
-            archiveTableModel == null
-        ) {
+        if (archiveTableModel == null) {
 
             createArchiveModel();
-
         }
 
-        archiveTable =
-            new JTable(
-                archiveTableModel
-            );
+        archiveTable = new JTable(archiveTableModel);
+        archiveTable.setRowHeight(38);
+        archiveTable.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        archiveTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 12));
+        archiveTable.getTableHeader().setBackground(new Color(244, 240, 231));
+        archiveTable.getTableHeader().setForeground(DIRECTORY_ACCENT);
+        archiveTable.getTableHeader().setPreferredSize(new Dimension(0, 36));
+        archiveTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        archiveTable.setGridColor(Frame.BORDER);
+        archiveTable.setShowVerticalLines(false);
+        archiveTable.setIntercellSpacing(new Dimension(0, 1));
+        archiveTable.setFillsViewportHeight(true);
+        archiveTable.setBackground(Color.WHITE);
 
-        archiveTable.setRowHeight(
-            38
-        );
+        TableColumnModel columnModel = archiveTable.getColumnModel();
+        columnModel.getColumn(0).setPreferredWidth(50);
+        columnModel.getColumn(1).setPreferredWidth(250);
+        columnModel.getColumn(2).setPreferredWidth(150);
+        columnModel.getColumn(3).setPreferredWidth(180);
+        columnModel.getColumn(4).setPreferredWidth(220);
+        columnModel.getColumn(5).setPreferredWidth(120);
+        columnModel.getColumn(6).setPreferredWidth(130);
 
-        archiveTable.setFont(
-            new Font(
-                "SansSerif",
-                Font.PLAIN,
-                12
-            )
-        );
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
 
-        archiveTable.getTableHeader().setFont(
-            new Font(
-                "SansSerif",
-                Font.BOLD,
-                12
-            )
-        );
+        columnModel.getColumn(0).setCellRenderer(centerRenderer);
+        columnModel.getColumn(2).setCellRenderer(centerRenderer);
+        columnModel.getColumn(3).setCellRenderer(centerRenderer);
+        columnModel.getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
 
-        archiveTable.getTableHeader().setBackground(
-            new Color(
-                235,
-                237,
-                242
-            )
-        );
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                    boolean hasFocus, int row, int column) {
 
-        archiveTable.getTableHeader().setForeground(
-            Color.DARK_GRAY
-        );
+                JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row,
+                        column);
 
-        archiveTable.setSelectionMode(
-            ListSelectionModel.SINGLE_SELECTION
-        );
+                label.setHorizontalAlignment(SwingConstants.CENTER);
 
-        archiveTable.setGridColor(
-            new Color(
-                225,
-                225,
-                225
-            )
-        );
+                label.setForeground(new Color(184, 78, 78));
 
-        archiveTable.setShowVerticalLines(
-            false
-        );
-
-        archiveTable.setBackground(
-            Color.WHITE
-        );
-
-        TableColumnModel columnModel =
-            archiveTable.getColumnModel();
-
-        columnModel.getColumn(0).setPreferredWidth(
-            50
-        );
-
-        columnModel.getColumn(1).setPreferredWidth(
-            250
-        );
-
-        columnModel.getColumn(2).setPreferredWidth(
-            150
-        );
-
-        columnModel.getColumn(3).setPreferredWidth(
-            180
-        );
-
-        columnModel.getColumn(4).setPreferredWidth(
-            150
-        );
-
-        DefaultTableCellRenderer centerRenderer =
-            new DefaultTableCellRenderer();
-
-        centerRenderer.setHorizontalAlignment(
-            SwingConstants.CENTER
-        );
-
-        columnModel.getColumn(0).setCellRenderer(
-            centerRenderer
-        );
-
-        columnModel.getColumn(2).setCellRenderer(
-            centerRenderer
-        );
-
-        columnModel.getColumn(3).setCellRenderer(
-            centerRenderer
-        );
-
-        columnModel.getColumn(4).setCellRenderer(
-            new DefaultTableCellRenderer() {
-
-                @Override
-                public Component getTableCellRendererComponent(
-
-                    JTable table,
-
-                    Object value,
-
-                    boolean isSelected,
-
-                    boolean hasFocus,
-
-                    int row,
-
-                    int column
-
-                ) {
-
-                    JLabel label =
-                        (JLabel)
-                        super.getTableCellRendererComponent(
-
-                            table,
-
-                            value,
-
-                            isSelected,
-
-                            hasFocus,
-
-                            row,
-
-                            column
-
-                        );
-
-                    label.setHorizontalAlignment(
-                        SwingConstants.CENTER
-                    );
-
-                    label.setForeground(
-                        Color.RED
-                    );
-
-                    return label;
-
-                }
-
+                return label;
             }
-        );
+        });
+        columnModel.getColumn(6).setCellRenderer(new UnarchiveRenderer());
+        columnModel.getColumn(6).setCellEditor(new UnarchiveEditor());
+    }
 
+    private final class UnarchiveRenderer extends JPanel implements TableCellRenderer {
+        private final JButton button = new JButton("Unarchive");
+
+        private UnarchiveRenderer() {
+            super(new FlowLayout(FlowLayout.CENTER, 0, 3));
+            styleActionButton(button, Frame.SUCCESS);
+            add(button);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean selected, boolean focused,
+                int row, int column) {
+            setBackground(selected ? table.getSelectionBackground() : Color.WHITE);
+            return this;
+        }
+    }
+
+    private final class UnarchiveEditor extends DefaultCellEditor {
+        private final JButton button = new JButton("Unarchive");
+        private int editingRow;
+
+        private UnarchiveEditor() {
+            super(new JTextField());
+            setClickCountToStart(1);
+            styleActionButton(button, Frame.SUCCESS);
+            button.addActionListener(event -> {
+                fireEditingStopped();
+                unarchiveStaff(editingRow);
+            });
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean selected, int row,
+                int column) {
+            editingRow = table.convertRowIndexToModel(row);
+            return button;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            return "";
+        }
+    }
+
+    private void unarchiveStaff(int row) {
+        if (archiveTableModel == null || row < 0 || row >= archiveTableModel.getRowCount()) {
+            return;
+        }
+        Object id = archiveTableModel.getValueAt(row, 0);
+        String name = String.valueOf(archiveTableModel.getValueAt(row, 1));
+        int result = JOptionPane.showConfirmDialog(mainFrame, "Restore " + name + " as active staff?",
+                "Unarchive Staff", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if (result != JOptionPane.YES_OPTION) {
+            return;
+        }
+        String sql = "UPDATE employee SET status = 'Active' WHERE employee_id = ? AND LOWER(status) = 'archived'";
+        try (Connection connection = database.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setObject(1, id);
+            if (statement.executeUpdate() == 0) {
+                JOptionPane.showMessageDialog(mainFrame, "This staff record is no longer archived.",
+                        "Staff Not Found", JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(mainFrame, name + " has been restored as active staff.",
+                        "Unarchive Staff", JOptionPane.INFORMATION_MESSAGE);
+            }
+            loadStaff(true);
+            loadStaff(false);
+        } catch (SQLException e) {
+            showDatabaseError("unarchive staff", e);
+        }
     }
 
     private void searchStaff() {
-
-        String search =
-            searchField
-                .getText()
-                .trim()
-                .toLowerCase();
-
-        String selectedType =
-            String.valueOf(
-                typeFilter.getSelectedItem()
-            );
-
-        if (
-            search.isEmpty() &&
-            "All".equals(selectedType)
-        ) {
-
-            staffTable.clearSelection();
-
-            return;
-
-        }
-
-        for (
-
-            int i = 0;
-
-            i < tableModel.getRowCount();
-
-            i++
-
-        ) {
-
-            String name =
-                String.valueOf(
-                    tableModel.getValueAt(
-                        i,
-                        1
-                    )
-                ).toLowerCase();
-
-            String type =
-                String.valueOf(
-                    tableModel.getValueAt(
-                        i,
-                        2
-                    )
-                );
-
-            String phone =
-                String.valueOf(
-                    tableModel.getValueAt(
-                        i,
-                        3
-                    )
-                ).toLowerCase();
-
-            boolean typeMatch =
-                "All".equals(
-                    selectedType
-                )
-                ||
-                type.equals(
-                    selectedType
-                );
-
-            boolean searchMatch =
-                search.isEmpty()
-                ||
-                name.contains(search)
-                ||
-                type.toLowerCase().contains(search)
-                ||
-                phone.contains(search);
-
-            if (
-                typeMatch &&
-                searchMatch
-            ) {
-
-                staffTable.setRowSelectionInterval(
-                    i,
-                    i
-                );
-
-                staffTable.scrollRectToVisible(
-
-                    staffTable.getCellRect(
-                        i,
-                        0,
-                        true
-                    )
-
-                );
-
-                return;
-
-            }
-
-        }
-
-        staffTable.clearSelection();
-
-        JOptionPane.showMessageDialog(
-
-            mainFrame,
-
-            "No staff member found.",
-
-            "Search",
-
-            JOptionPane.INFORMATION_MESSAGE
-
-        );
-
+        applyStaffFilters();
     }
 
     private void filterStaff() {
+        applyStaffFilters();
+    }
 
-        String selectedType =
-            String.valueOf(
-                typeFilter.getSelectedItem()
-            );
-
-        if (
-            "All".equals(
-                selectedType
-            )
-        ) {
-
-            staffTable.clearSelection();
-
+    private void applyStaffFilters() {
+        if (staffSorter == null || searchField == null || typeFilter == null) {
             return;
-
         }
-
-        for (
-
-            int i = 0;
-
-            i < tableModel.getRowCount();
-
-            i++
-
-        ) {
-
-            String type =
-                String.valueOf(
-                    tableModel.getValueAt(
-                        i,
-                        2
-                    )
-                );
-
-            if (
-                type.equals(
-                    selectedType
-                )
-            ) {
-
-                staffTable.setRowSelectionInterval(
-                    i,
-                    i
-                );
-
-                staffTable.scrollRectToVisible(
-
-                    staffTable.getCellRect(
-                        i,
-                        0,
-                        true
-                    )
-
-                );
-
-                return;
-
+        String search = searchField.getText().trim().toLowerCase();
+        String role = String.valueOf(typeFilter.getSelectedItem());
+        staffSorter.setRowFilter(new RowFilter<DefaultTableModel, Integer>() {
+            @Override
+            public boolean include(Entry<? extends DefaultTableModel, ? extends Integer> entry) {
+                boolean matchesSearch = search.isEmpty();
+                for (int column = 0; column < entry.getValueCount() - 1 && !matchesSearch; column++) {
+                    Object value = entry.getValue(column);
+                    matchesSearch = value != null && value.toString().toLowerCase().contains(search);
+                }
+                boolean matchesRole = "All".equals(role)
+                        || role.equalsIgnoreCase(String.valueOf(entry.getValue(2)));
+                return matchesSearch && matchesRole;
             }
-
-        }
-
-        staffTable.clearSelection();
-
-        JOptionPane.showMessageDialog(
-
-            mainFrame,
-
-            "No "
-                + selectedType
-                + " staff found.",
-
-            "Staff Type",
-
-            JOptionPane.INFORMATION_MESSAGE
-
-        );
-
+        });
     }
-
-    private void updateRowLimit() {
-
-        /*
-         * This is prepared for pagination.
-         * The selected value represents how
-         * many rows should eventually be shown.
-         *
-         * Since the current data is stored
-         * directly in DefaultTableModel,
-         * we don't remove data here.
-         */
-
-        if (
-            rowsCombo == null
-        ) {
-
-            return;
-
-        }
-
-        String selectedRows =
-            String.valueOf(
-                rowsCombo.getSelectedItem()
-            );
-
-        System.out.println(
-            "Rows per page: "
-                + selectedRows
-        );
-
-    }
-
 }

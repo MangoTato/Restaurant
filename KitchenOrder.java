@@ -1,13 +1,16 @@
 /** A customer order that is shared by the customer and kitchen screens. */
 public class KitchenOrder {
-    public enum Status { PENDING, COOKING, FOR_SERVING, RECEIVED }
+    public enum Status {
+        PENDING, COOKING, FOR_SERVING, RECEIVED
+    }
+
     private final MenuItem item;
     private final int tableNumber;
+    private Long receiptItemId;
     private int quantity;
     private String note;
     private long readyAtMillis;
     private Status status = Status.PENDING;
-    private boolean sentToKitchen;
 
     public KitchenOrder(MenuItem item, int quantity, String note, int tableNumber) {
         this.item = item;
@@ -16,23 +19,58 @@ public class KitchenOrder {
         this.tableNumber = tableNumber;
     }
 
-    public MenuItem getItem() { return item; }
-    public int getTableNumber() { return tableNumber; }
-    public int getQuantity() { return quantity; }
-    public String getNote() { return note; }
-    public boolean isPending() { return status == Status.PENDING; }
-    public boolean isCooking() { return status == Status.COOKING; }
-    public boolean isComplete() { return status == Status.FOR_SERVING; }
-    public boolean isReceived() { return status == Status.RECEIVED; }
-    public boolean isSentToKitchen() { return sentToKitchen; }
+    public MenuItem getItem() {
+        return item;
+    }
+
+    public int getTableNumber() {
+        return tableNumber;
+    }
+
+    Long getReceiptItemId() {
+        return receiptItemId;
+    }
+
+    void setReceiptItemId(Long receiptItemId) {
+        this.receiptItemId = receiptItemId;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public boolean isPending() {
+        return status == Status.PENDING;
+    }
+
+    public boolean isCooking() {
+        return status == Status.COOKING;
+    }
+
+    public boolean isComplete() {
+        return status == Status.FOR_SERVING;
+    }
+
+    public boolean isReceived() {
+        return status == Status.RECEIVED;
+    }
 
     public long getSecondsRemaining() {
         return !isCooking() ? 0 : Math.max(0, (readyAtMillis - System.currentTimeMillis() + 999) / 1000);
     }
 
-    void setQuantity(int quantity) { this.quantity = quantity; }
-    void setNote(String note) { this.note = note; }
-    void sendToKitchen() { sentToKitchen = true; }
+    void setQuantity(int quantity) {
+        this.quantity = quantity;
+    }
+
+    void setNote(String note) {
+        this.note = note;
+    }
+
     void addCookingTime(int minutes) {
         long base = Math.max(System.currentTimeMillis(), readyAtMillis);
         readyAtMillis = base + minutes * 60_000L;
@@ -40,10 +78,16 @@ public class KitchenOrder {
     }
 
     void removeCookingTime(int minutes) {
-        if (!isCooking()) return;
+        if (!isCooking())
+            return;
         readyAtMillis = Math.max(System.currentTimeMillis(), readyAtMillis - minutes * 60_000L);
     }
 
-    void complete() { status = Status.FOR_SERVING; }
-    void receive() { status = Status.RECEIVED; }
+    void complete() {
+        status = Status.FOR_SERVING;
+    }
+
+    void receive() {
+        status = Status.RECEIVED;
+    }
 }

@@ -1,5 +1,6 @@
 public class MenuItem {
 
+    private Integer databaseId;
     private String name;
     private double price;
     private String category = "Main Dish";
@@ -9,6 +10,14 @@ public class MenuItem {
     public MenuItem(String name, double price) {
         this.name = name;
         this.price = price;
+    }
+
+    public Integer getDatabaseId() {
+        return databaseId;
+    }
+
+    public void setDatabaseId(Integer databaseId) {
+        this.databaseId = databaseId;
     }
 
     public String getName() {
@@ -27,10 +36,27 @@ public class MenuItem {
         this.price = price;
     }
 
-    public String getCategory() { return category; }
-    public void setCategory(String category) { this.category = category; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public String getImagePath() { return imagePath; }
-    public void setImagePath(String imagePath) { this.imagePath = imagePath; }
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getImagePath() {
+        return imagePath;
+    }
+
+    public void setImagePath(String imagePath) {
+        this.imagePath = imagePath;
+    }
 }

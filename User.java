@@ -22,8 +22,9 @@ public class User {
     public boolean isAdmin() {
         return isAdmin;
     }
-    public boolean isEmployee(){
+
+    public boolean isEmployee() {
         return isEmployee;
     }
-    
+
 }

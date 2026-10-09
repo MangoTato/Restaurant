@@ -7,6 +7,7 @@ public class KitchenOrder {
     private String note;
     private long readyAtMillis;
     private Status status = Status.PENDING;
+    private boolean sentToKitchen;
 
     public KitchenOrder(MenuItem item, int quantity, String note, int tableNumber) {
         this.item = item;
@@ -23,6 +24,7 @@ public class KitchenOrder {
     public boolean isCooking() { return status == Status.COOKING; }
     public boolean isComplete() { return status == Status.FOR_SERVING; }
     public boolean isReceived() { return status == Status.RECEIVED; }
+    public boolean isSentToKitchen() { return sentToKitchen; }
 
     public long getSecondsRemaining() {
         return !isCooking() ? 0 : Math.max(0, (readyAtMillis - System.currentTimeMillis() + 999) / 1000);
@@ -30,6 +32,7 @@ public class KitchenOrder {
 
     void setQuantity(int quantity) { this.quantity = quantity; }
     void setNote(String note) { this.note = note; }
+    void sendToKitchen() { sentToKitchen = true; }
     void addCookingTime(int minutes) {
         long base = Math.max(System.currentTimeMillis(), readyAtMillis);
         readyAtMillis = base + minutes * 60_000L;

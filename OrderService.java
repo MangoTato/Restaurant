@@ -22,14 +22,15 @@ public class OrderService {
     public List<KitchenOrder> getKitchenOrders() {
         List<KitchenOrder> kitchenOrders = new ArrayList<>();
         for (KitchenOrder order : orders) {
-            if (!order.isReceived()) kitchenOrders.add(order);
+            if (order.isSentToKitchen() && !order.isReceived()) kitchenOrders.add(order);
         }
         return Collections.unmodifiableList(kitchenOrders);
     }
 
     public KitchenOrder add(MenuItem item, String note, int quantity, int tableNumber) {
         for (KitchenOrder order : orders) {
-            if (order.getItem() == item && order.getTableNumber() == tableNumber && order.isPending()) {
+            if (order.getItem() == item && order.getTableNumber() == tableNumber
+                    && order.isPending() && !order.isSentToKitchen()) {
                 order.setQuantity(order.getQuantity() + quantity);
                 order.setNote(note);
                 notifyListeners();
@@ -49,6 +50,16 @@ public class OrderService {
 
     public void updateNote(KitchenOrder order, String note) {
         order.setNote(note);
+        notifyListeners();
+    }
+
+    /** Makes all draft items for a table visible to the kitchen at once. */
+    public void sendTableOrdersToKitchen(int tableNumber) {
+        for (KitchenOrder order : orders) {
+            if (order.getTableNumber() == tableNumber && !order.isSentToKitchen()) {
+                order.sendToKitchen();
+            }
+        }
         notifyListeners();
     }
 

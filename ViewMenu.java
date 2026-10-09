@@ -369,13 +369,13 @@
                         } else {
                             updateStatusLabel(statusLabel, order);
                             receivedButton.setVisible(order.isComplete());
-                            removeButton.setEnabled(order.isPending());
+                            removeButton.setEnabled(order.isPending() && !order.isSentToKitchen());
                             buttons.revalidate();
                         }
                     });
                     countdown.start();
 
-                    removeButton.setEnabled(order.isPending());
+                    removeButton.setEnabled(order.isPending() && !order.isSentToKitchen());
 
                     orderList.add(itemPanel);
                     orderList.add(Box.createVerticalStrut(8));
@@ -436,18 +436,29 @@
             totalLabel.setForeground(Frame.NAVY);
 
             JButton closeButton = new JButton("Back to Menu");
+            JButton sendToKitchenButton = new JButton("Send to Kitchen");
             JButton checkoutbutton = new JButton("Check Out");
+            boolean hasDraftOrders = orders.stream().anyMatch(order -> !order.isSentToKitchen());
+            sendToKitchenButton.setEnabled(hasDraftOrders);
 
             JPanel bottomPanel = new JPanel(new BorderLayout());
             bottomPanel.setOpaque(false);
             bottomPanel.add(totalLabel, BorderLayout.WEST);
-            bottomPanel.add(closeButton, BorderLayout.EAST);
-            bottomPanel.add(checkoutbutton, BorderLayout.AFTER_LAST_LINE); 
+            JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+            actions.setOpaque(false);
+            actions.add(sendToKitchenButton);
+            actions.add(checkoutbutton);
+            actions.add(closeButton);
+            bottomPanel.add(actions, BorderLayout.EAST);
             
             panel.add(bottomPanel, BorderLayout.SOUTH);
 
             closeButton.addActionListener(e -> {
                 viewLayout.show(viewPanel, "Menu");
+            });
+            sendToKitchenButton.addActionListener(e -> {
+                mainFrame.orderService.sendTableOrdersToKitchen(tableNumber);
+                refreshOrderPanel();
             });
             checkoutbutton.addActionListener(e -> {
                 showCheckoutWhenReady();
@@ -539,8 +550,33 @@
             JButton done = new JButton("Done");
             done.setAlignmentX(Component.CENTER_ALIGNMENT);
             done.addActionListener(e -> {
-                refreshCheckOut();
-                viewLayout.show(viewPanel, "Check Out");
+                JPasswordField passwordField = new JPasswordField(15);
+                JPanel passwordPanel = new JPanel(new GridLayout(2, 1, 5, 5));
+                passwordPanel.add(new JLabel("Employee password:"));
+                passwordPanel.add(passwordField);
+
+                int result = JOptionPane.showConfirmDialog(
+                        this,
+                        passwordPanel,
+                        "Employee Verification",
+                        JOptionPane.OK_CANCEL_OPTION,
+                        JOptionPane.PLAIN_MESSAGE
+                );
+
+                if (result == JOptionPane.OK_OPTION) {
+                    String password = new String(passwordField.getPassword());
+                    if ("emp1".equals(password)) {
+                        refreshCheckOut();
+                        viewLayout.show(viewPanel, "Check Out");
+                    } else {
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "Incorrect employee password.",
+                                "Access Denied",
+                                JOptionPane.ERROR_MESSAGE
+                        );
+                    }
+                }
             });
             card.add(title);
             card.add(Box.createVerticalStrut(15));
@@ -601,8 +637,10 @@
         }
 
         private void updateStatusLabel(JLabel label, KitchenOrder order) {
-            if (order.isPending()) {
-                label.setText("PENDING");
+            if (!order.isSentToKitchen()) {
+                label.setText("");
+            } else if (order.isPending()) {
+                label.setText("Order Sent to Kitchen");
                 label.setForeground(new Color(210, 150, 0));
             } else if (order.isComplete()) {
                 label.setText("For Serving");

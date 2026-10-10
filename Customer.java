@@ -8,12 +8,12 @@ import java.util.concurrent.ExecutionException;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
-public class Customer extends JPanel {
+public class Customer extends Frame.BackgroundPanel {
     private static final String CUSTOMER_SIGN_OUT_PASSWORD = "adm123";
 
     private final Frame mainFrame;
     private final CardLayout contentLayout = new CardLayout();
-    private final JPanel contentPanel = new JPanel(contentLayout);
+    private final JPanel contentPanel = new Frame.BackgroundPanel();
     private final Map<Integer, JButton> tableCards = new LinkedHashMap<>();
     private final Map<Integer, JFrame> tableFrames = new LinkedHashMap<>();
     private final boolean[] startingTables = new boolean[TableService.TABLE_COUNT + 1];
@@ -26,7 +26,8 @@ public class Customer extends JPanel {
         this.mainFrame = mainFrame;
 
         setLayout(new BorderLayout(0, 20));
-        setBackground(Frame.BACKGROUND);
+        setDecorativeBackground(true);
+        setBackground(Color.WHITE);
         setBorder(new EmptyBorder(18, 28, 28, 28));
 
         JPanel header = new JPanel(new BorderLayout());
@@ -42,7 +43,8 @@ public class Customer extends JPanel {
         backToLoginButton.addActionListener(e -> confirmBackToLogin());
         header.add(backToLoginButton, BorderLayout.EAST);
 
-        contentPanel.setBackground(Color.WHITE);
+        contentPanel.setLayout(contentLayout);
+        contentPanel.setBackground(Frame.BACKGROUND);
         contentPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(Frame.BORDER),
                 new EmptyBorder(0, 0, 0, 0)));
@@ -90,7 +92,7 @@ public class Customer extends JPanel {
             tableCard.setContentAreaFilled(true);
             tableCard.setCursor(new Cursor(Cursor.HAND_CURSOR));
             Frame.styleButtonState(tableCard, false);
-            tableCard.setForeground(Color.WHITE);
+            tableCard.setForeground(Frame.NAVY);
             tableCard.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(Frame.BORDER),
                     new EmptyBorder(18, 20, 18, 20)));
@@ -309,8 +311,9 @@ public class Customer extends JPanel {
         }
 
         ViewMenu viewMenu = new ViewMenu(mainFrame, true, tableNumber);
-        JPanel menuScreenPanel = new JPanel(new BorderLayout(0, 8));
-        menuScreenPanel.setBackground(Frame.BACKGROUND);
+        JPanel menuScreenPanel = new JPanel();
+        menuScreenPanel.setLayout(new BorderLayout(0, 8));
+        menuScreenPanel.setBackground(Color.WHITE);
         menuScreenPanel.setBorder(new EmptyBorder(10, 12, 12, 12));
 
         JButton backToTables = new JButton("Back to tables");
@@ -332,7 +335,7 @@ public class Customer extends JPanel {
                 tableFrames.remove(tableNumber, tableFrame);
             }
         });
-        tableFrame.setContentPane(menuScreenPanel);
+        tableFrame.setContentPane(Frame.createWorkspaceCanvas(menuScreenPanel));
         tableFrame.setMinimumSize(new Dimension(900, 650));
         tableFrame.setSize(1180, 780);
         tableFrame.setLocationRelativeTo(mainFrame);

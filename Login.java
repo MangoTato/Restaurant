@@ -9,7 +9,8 @@ public class Login {
     }
 
     JPanel LoginPanel() {
-        JPanel root = new JPanel(null);
+        Frame.BackgroundPanel root = new Frame.BackgroundPanel(true);
+        root.setLayout(null);
         root.setPreferredSize(new Dimension(850, 520));
         root.setBackground(Frame.BACKGROUND);
 
@@ -24,6 +25,12 @@ public class Login {
         description.setFont(new Font("SansSerif", Font.PLAIN, 18));
         description.setForeground(Frame.MUTED);
         root.add(description);
+
+        JLabel eyebrow = new JLabel("TABLESIDE SERVICE, SIMPLIFIED");
+        eyebrow.setBounds(50, 96, 280, 22);
+        eyebrow.setFont(new Font("SansSerif", Font.BOLD, 11));
+        eyebrow.setForeground(Frame.ACCENT);
+        root.add(eyebrow);
 
         JPanel loginCard = new JPanel(null);
         loginCard.setBounds(420, 90, 400, 340);

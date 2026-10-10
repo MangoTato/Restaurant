@@ -7,7 +7,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
-public class ViewMenu extends JPanel {
+public class ViewMenu extends Frame.BackgroundPanel {
 
     private final Frame mainFrame;
     private final boolean customerView;
@@ -37,7 +37,8 @@ public class ViewMenu extends JPanel {
     }
 
     public JPanel ShowViewMenuPanel() {
-        JPanel card = new JPanel(new BorderLayout(0, 15));
+        JPanel card = new Frame.BackgroundPanel();
+        card.setLayout(new BorderLayout(0, 15));
         card.setBackground(Frame.BACKGROUND);
         card.setBorder(new EmptyBorder(18, 20, 18, 20));
         card.setPreferredSize(new Dimension(1100, 680));

@@ -16,7 +16,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import javax.swing.table.TableCellRenderer;
 
-public class CustomerLog extends JPanel {
+public class CustomerLog extends Frame.BackgroundPanel {
     private static final String CONFIRMED = "Confirmed";
     private static final String RESERVED = "Reserved";
     private static final String CANCELLED = "Cancelled";
@@ -53,6 +53,9 @@ public class CustomerLog extends JPanel {
         this.mainFrame = mainFrame;
         this.showAddCustomerAction = showAddCustomerAction;
         this.frontDeskCustomerDirectory = frontDeskCustomerDirectory;
+        if (frontDeskCustomerDirectory) {
+            putClientProperty("pâques.pale.buttons", true);
+        }
         setLayout(new BorderLayout());
         setBackground(DIRECTORY_LIGHT);
         setBorder(new EmptyBorder(18, 20, 20, 20));
@@ -606,6 +609,12 @@ public class CustomerLog extends JPanel {
         private EditButtonRenderer() {
             super(new FlowLayout(FlowLayout.CENTER, 0, 2));
             editButton.setForeground(DIRECTORY_ACCENT);
+            if (frontDeskCustomerDirectory) {
+                editButton.setOpaque(true);
+                editButton.setContentAreaFilled(true);
+                editButton.setBackground(Frame.BACKGROUND);
+                editButton.setForeground(Frame.NAVY);
+            }
             editButton.setFocusPainted(false);
             add(editButton);
         }
@@ -624,6 +633,12 @@ public class CustomerLog extends JPanel {
 
         private EditButtonEditor() {
             super(new JTextField());
+            if (frontDeskCustomerDirectory) {
+                editButton.setOpaque(true);
+                editButton.setContentAreaFilled(true);
+                editButton.setBackground(Frame.BACKGROUND);
+                editButton.setForeground(Frame.NAVY);
+            }
             editButton.addActionListener(event -> {
                 fireEditingStopped();
                 editCustomer(editingRow);

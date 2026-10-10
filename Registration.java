@@ -30,7 +30,8 @@ import javax.swing.SwingWorker;
 import javax.swing.border.EmptyBorder;
 
 /** Front-desk dashboard for reservations, tables, and customer records. */
-public class Registration extends JPanel {
+public class Registration extends Frame.BackgroundPanel {
+    private static final Color CALENDAR_BUTTON_COLOR = new Color(175, 215, 229);
     private final Frame mainFrame;
     private final CustomerLog customerLog;
     private final CustomerLog customerDirectory;
@@ -58,6 +59,7 @@ public class Registration extends JPanel {
 
     public Registration(Frame mainFrame) {
         this.mainFrame = mainFrame;
+        putClientProperty("pâques.pale.buttons", true);
         customerLog = new CustomerLog(mainFrame, false);
         customerLog.setSelectedReservationDate(selectedDate);
         customerLog.setDialogParent(this);
@@ -165,7 +167,7 @@ public class Registration extends JPanel {
         JButton button = new JButton(text);
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createEmptyBorder(4, 7, 4, 7));
-        Frame.styleButtonState(button, false);
+        styleRegistrationButton(button, false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return button;
     }
@@ -193,7 +195,7 @@ public class Registration extends JPanel {
         JButton newReservation = new JButton("+ Add reservation");
         newReservation.setFocusPainted(false);
         newReservation.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        Frame.styleButtonState(newReservation, false);
+        styleRegistrationButton(newReservation, false);
         newReservation.setFont(new Font("SansSerif", Font.BOLD, 11));
         newReservation.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(Frame.ACCENT), new EmptyBorder(7, 10, 7, 10)));
@@ -272,11 +274,20 @@ public class Registration extends JPanel {
     private void styleNavigationButton(JButton button, boolean selected) {
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        Frame.styleButtonState(button, selected);
+        styleRegistrationButton(button, selected);
         button.setFont(new Font("SansSerif", Font.BOLD, 12));
         button.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(selected ? Frame.ACCENT : Frame.BORDER),
                 new EmptyBorder(8, 12, 8, 12)));
+    }
+
+    private void styleRegistrationButton(JButton button, boolean selected) {
+        Frame.styleButtonState(button, selected);
+        button.putClientProperty("pâques.disable.button.hover", true);
+        button.setOpaque(true);
+        button.setContentAreaFilled(true);
+        button.setBackground(Frame.BACKGROUND);
+        button.setForeground(Frame.NAVY);
     }
 
     private JPanel createSummaryCards() {
@@ -348,7 +359,8 @@ public class Registration extends JPanel {
             dateButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
             boolean selected = date.equals(selectedDate);
             boolean today = date.equals(LocalDate.now());
-            Frame.styleButtonState(dateButton, selected);
+            styleRegistrationButton(dateButton, selected);
+            dateButton.setBackground(CALENDAR_BUTTON_COLOR);
             dateButton.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(selected ? Frame.ACCENT
                             : today ? Frame.ACCENT_DARK : Frame.BORDER),

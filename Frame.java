@@ -8,10 +8,10 @@ import javax.swing.*;
 public class Frame extends JFrame {
 
     public static final Color NAVY = new Color(18, 31, 62);
-    public static final Color ACCENT = new Color(20, 82, 245);
+    public static final Color ACCENT = new Color(72, 135, 247);
     public static final Color ACCENT_DARK = new Color(18, 31, 62);
     public static final Color SUCCESS = new Color(59, 143, 94);
-    public static final Color BACKGROUND = new Color(238, 241, 246);
+    public static final Color BACKGROUND = new Color(212, 237, 243);
     public static final Color CARD = Color.WHITE;
     public static final Color BORDER = new Color(216, 222, 232);
     public static final Color MUTED = new Color(99, 111, 130);
@@ -68,6 +68,27 @@ public class Frame extends JFrame {
             }
             MouseEvent mouseEvent = (MouseEvent) event;
             JButton button = (JButton) event.getSource();
+            if (Boolean.TRUE.equals(button.getClientProperty("pâques.hover.only"))) {
+                if (mouseEvent.getID() == MouseEvent.MOUSE_ENTERED
+                        || mouseEvent.getID() == MouseEvent.MOUSE_PRESSED
+                        || (mouseEvent.getID() == MouseEvent.MOUSE_RELEASED
+                                && button.contains(mouseEvent.getPoint()))) {
+                    button.setOpaque(true);
+                    button.setContentAreaFilled(true);
+                    button.setBackground(new Color(239, 242, 247));
+                    button.setForeground(NAVY);
+                } else if (mouseEvent.getID() == MouseEvent.MOUSE_EXITED
+                        || mouseEvent.getID() == MouseEvent.MOUSE_RELEASED) {
+                    button.setOpaque(false);
+                    button.setContentAreaFilled(false);
+                    boolean selected = button.getFont().isBold();
+                    button.setForeground(selected ? ACCENT : NAVY);
+                }
+                return;
+            }
+            if (isHoverSuppressed(button)) {
+                return;
+            }
             if (!button.isEnabled()) {
                 return;
             }
@@ -89,6 +110,16 @@ public class Frame extends JFrame {
         buttonHoverEffectsInstalled = true;
     }
 
+    private static boolean isHoverSuppressed(Component component) {
+        for (Component current = component; current != null; current = current.getParent()) {
+            if (current instanceof JComponent && Boolean.TRUE.equals(
+                    ((JComponent) current).getClientProperty("pâques.disable.button.hover"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static Color buttonBaseBackground(JButton button) {
         return Boolean.TRUE.equals(button.getClientProperty("pâques.selected")) ? Color.WHITE : ACCENT;
     }
@@ -103,6 +134,72 @@ public class Frame extends JFrame {
         button.setContentAreaFilled(true);
         button.setBackground(selected ? Color.WHITE : ACCENT);
         button.setForeground(selected ? ACCENT : Color.WHITE);
+    }
+
+    public static void clearButtonHoverAppearance(JButton button) {
+        button.putClientProperty("pâques.selected", false);
+    }
+
+    public static JPanel createWorkspaceCanvas(JPanel workspace) {
+        return workspace;
+    }
+
+    
+    public static class BackgroundPanel extends JPanel {
+        private boolean decorative;
+
+        public BackgroundPanel() {
+            this(false);
+        }
+
+        public BackgroundPanel(boolean decorative) {
+            this.decorative = decorative;
+            setOpaque(true);
+        }
+
+        public void setDecorativeBackground(boolean decorative) {
+            this.decorative = decorative;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            super.paintComponent(graphics);
+            if (!decorative) {
+                return;
+            }
+            Graphics2D g2 = (Graphics2D) graphics.create();
+            try {
+                int width = getWidth();
+                int height = getHeight();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setPaint(new GradientPaint(0, 0, new Color(246, 242, 255),
+                        width, height, new Color(225, 243, 255)));
+                g2.fillRect(0, 0, width, height);
+
+              
+                g2.setColor(new Color(112, 72, 208, 42));
+                g2.fillOval(-115, height - 230, 360, 360);
+                g2.setColor(new Color(22, 155, 180, 32));
+                g2.fillOval(width - 235, -145, 350, 350);
+                g2.setColor(new Color(112, 72, 208, 18));
+                g2.fillOval(-56, -54, 142, 142);
+                g2.setColor(new Color(255, 187, 102, 24));
+                g2.fillOval(66, 34, 48, 48);
+                g2.setColor(new Color(112, 72, 208, 20));
+                g2.fillOval(width - 175, 48, 145, 145);
+                g2.setColor(new Color(22, 155, 180, 26));
+                g2.fillOval(width - 92, 154, 68, 68);
+                g2.setColor(new Color(255, 187, 102, 28));
+                g2.fillOval(width - 238, 177, 46, 46);
+                g2.setColor(new Color(255, 255, 255, 138));
+                g2.fillRoundRect(28, 82, 305, 218, 28, 28);
+                g2.setColor(new Color(255, 255, 255, 94));
+                g2.fillRoundRect(370, 58, 420, 405, 30, 30);
+            } finally {
+                g2.dispose();
+            }
+        }
     }
 
     public boolean addUser(String username, String password, boolean isAdmin, boolean IsEmployee) {

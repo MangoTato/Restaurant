@@ -109,6 +109,17 @@ public class TableService {
         notifyListeners();
     }
 
+    public void resetForNewAdminSession() {
+        for (int tableNumber = 1; tableNumber <= TABLE_COUNT; tableNumber++) {
+            occupied[tableNumber] = false;
+            cleaning[tableNumber] = false;
+            checkoutRequested[tableNumber] = false;
+            customerIds[tableNumber] = null;
+            customerStatuses[tableNumber] = null;
+        }
+        notifyListeners();
+    }
+
     public Long getCustomerId(int tableNumber) {
         validate(tableNumber);
         return customerIds[tableNumber];

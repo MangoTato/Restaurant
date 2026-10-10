@@ -17,7 +17,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
 /** Live restaurant overview for administrators. */
-public class Overview extends JPanel {
+public class Overview extends Frame.BackgroundPanel {
     private static final Color[] CHART_COLORS = {
             new Color(59, 143, 94), Frame.ACCENT,
             new Color(244, 218, 192), new Color(180, 183, 181)
@@ -71,8 +71,20 @@ public class Overview extends JPanel {
         refreshButton.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(Frame.ACCENT), new EmptyBorder(7, 12, 7, 12)));
         refreshButton.addActionListener(event -> refreshOverviewData(true));
+        JButton signOutButton = new JButton("Sign out");
+        signOutButton.putClientProperty("pâques.force.filled", true);
+        signOutButton.putClientProperty("pâques.danger", true);
+        signOutButton.setFocusPainted(false);
+        signOutButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        Frame.styleButtonState(signOutButton, false);
+        signOutButton.putClientProperty("pâques.disable.button.hover", true);
+        signOutButton.setBackground(new Color(196, 64, 64));
+        signOutButton.setForeground(Color.WHITE);
+        signOutButton.setFont(new Font("SansSerif", Font.BOLD, 12));
+        signOutButton.addActionListener(event -> mainFrame.signOut());
         headerActions.add(loadStatus);
         headerActions.add(refreshButton);
+        headerActions.add(signOutButton);
         header.add(headerActions, BorderLayout.EAST);
         add(header, BorderLayout.NORTH);
 

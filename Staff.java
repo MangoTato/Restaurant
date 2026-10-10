@@ -7,7 +7,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.*;
 
-public class Staff extends JPanel {
+public class Staff extends Frame.BackgroundPanel {
     private static final Color DIRECTORY_ACCENT = Frame.ACCENT;
 
     private final Frame mainFrame;
@@ -45,8 +45,9 @@ public class Staff extends JPanel {
 
     public JPanel showStaff() {
 
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(Color.WHITE);
+        JPanel card = new Frame.BackgroundPanel();
+        card.setLayout(new BorderLayout());
+        card.setBackground(Frame.BACKGROUND);
         card.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(225, 220, 239)), new EmptyBorder(20, 24, 20, 24)));
 
@@ -69,7 +70,7 @@ public class Staff extends JPanel {
         card.add(titlePanel, BorderLayout.NORTH);
 
         contentPanel = new JPanel(new BorderLayout(0, 12));
-        contentPanel.setBackground(Color.WHITE);
+        contentPanel.setBackground(Frame.BACKGROUND);
 
         card.add(contentPanel, BorderLayout.CENTER);
 
@@ -101,7 +102,7 @@ public class Staff extends JPanel {
         contentPanel.add(topArea, BorderLayout.NORTH);
 
         JPanel tableArea = new JPanel(new BorderLayout(0, 10));
-        tableArea.setBackground(Color.WHITE);
+        tableArea.setBackground(Frame.BACKGROUND);
 
         JPanel toolbar = createToolbar();
         tableArea.add(toolbar, BorderLayout.NORTH);
@@ -717,7 +718,7 @@ public class Staff extends JPanel {
         contentPanel.removeAll();
 
         JPanel panel = new JPanel(new BorderLayout(0, 10));
-        panel.setBackground(Color.WHITE);
+        panel.setBackground(Frame.BACKGROUND);
 
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);

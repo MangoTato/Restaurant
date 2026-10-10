@@ -10,7 +10,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
-public class ManageMenu extends JPanel {
+public class ManageMenu extends Frame.BackgroundPanel {
 
     private final Frame mainFrame;
 
@@ -67,7 +67,8 @@ public class ManageMenu extends JPanel {
 
     public JPanel ShowMenuPanel() {
 
-        JPanel card = new JPanel(new BorderLayout(0, 15));
+        JPanel card = new Frame.BackgroundPanel();
+        card.setLayout(new BorderLayout(0, 15));
         card.setBackground(Frame.BACKGROUND);
         card.setBorder(new EmptyBorder(18, 20, 18, 20));
 

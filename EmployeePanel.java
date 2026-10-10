@@ -16,8 +16,10 @@ import java.util.concurrent.ExecutionException;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
-public class EmployeePanel extends JPanel {
+public class EmployeePanel extends Frame.BackgroundPanel {
     private static final String WINDOW_SELECTION_PASSWORD = "adm123";
+    private static final Color WORKSPACE_BUTTON_COLOR = new Color(212, 237, 243);
+    private static final Color TABLE_BUTTON_COLOR = new Color(157, 204, 221);
 
     private final Frame mainFrame;
     private final Map<String, JFrame> operationWindows = new LinkedHashMap<>();
@@ -32,7 +34,9 @@ public class EmployeePanel extends JPanel {
         this.mainFrame = mainFrame;
 
         setLayout(new BorderLayout(0, 20));
-        setBackground(Frame.BACKGROUND);
+        setDecorativeBackground(true);
+        putClientProperty("pâques.transparent.buttons", true);
+        setBackground(Color.WHITE);
         setBorder(new EmptyBorder(18, 28, 28, 28));
 
         // =====================================================
@@ -47,7 +51,14 @@ public class EmployeePanel extends JPanel {
         header.add(pageTitle, BorderLayout.WEST);
 
         JButton logout = new JButton("Sign out");
+        logout.putClientProperty("pâques.force.filled", true);
         styleActionButton(logout, true);
+        logout.putClientProperty("pâques.danger", true);
+        logout.setOpaque(true);
+        logout.setContentAreaFilled(true);
+        logout.putClientProperty("pâques.disable.button.hover", true);
+        logout.setBackground(new Color(185, 46, 46));
+        logout.setForeground(Color.WHITE);
         logout.addActionListener(e -> requestSelectionSignOut());
         header.add(logout, BorderLayout.EAST);
 
@@ -66,10 +77,12 @@ public class EmployeePanel extends JPanel {
 
         JPanel cards = new JPanel(new GridLayout(1, 3, 18, 18));
         cards.setOpaque(false);
-        cards.add(createOperationCard("KITCHEN", "Kitchen", "Prepare incoming table orders.", Frame.ACCENT));
-        cards.add(createOperationCard("CASHIER", "Cashier", "Review bills and process checkout.", Frame.SUCCESS));
+        cards.add(createOperationCard("KITCHEN", "Kitchen", "Prepare incoming table orders.", Frame.ACCENT,
+                "Images/kitchen.png"));
+        cards.add(createOperationCard("CASHIER", "Cashier", "Review bills and process checkout.", Frame.SUCCESS,
+                "Images/cashier.png"));
         cards.add(createOperationCard("FRONT DESK", "Registration", "Manage guest bookings and schedules.",
-                Frame.ACCENT_DARK));
+                Frame.ACCENT_DARK, null));
         JPanel launcher = new JPanel(new BorderLayout(0, 24));
         launcher.setOpaque(false);
         launcher.setBorder(new EmptyBorder(36, 18, 36, 18));
@@ -80,11 +93,17 @@ public class EmployeePanel extends JPanel {
         add(launcher, BorderLayout.CENTER);
     }
 
-    private JPanel createOperationCard(String eyebrow, String section, String description, Color accent) {
-        JPanel card = new JPanel(new BorderLayout(0, 18));
+    private JPanel createOperationCard(String eyebrow, String section, String description, Color accent,
+            String imagePath) {
+        JPanel card = imagePath == null ? new JPanel(new BorderLayout(0, 18)) : createImageCard(imagePath);
         card.setBackground(Color.WHITE);
         card.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(Frame.BORDER), new EmptyBorder(20, 20, 18, 20)));
+
+        if (imagePath != null) {
+            addWorkspaceLauncher(card, section, accent, true);
+            return card;
+        }
 
         JLabel icon = new JLabel(section.substring(0, 1), SwingConstants.CENTER);
         icon.setPreferredSize(new Dimension(54, 54));
@@ -115,23 +134,56 @@ public class EmployeePanel extends JPanel {
         details.add(title);
         details.add(Box.createVerticalStrut(8));
         details.add(copy);
-        card.add(details, BorderLayout.CENTER);
+        JPanel body = new JPanel(new BorderLayout(0, 16));
+        body.setOpaque(false);
+        body.add(details, BorderLayout.NORTH);
+        card.add(body, BorderLayout.CENTER);
 
-        JButton open = new JButton("Open workspace  →");
+        addWorkspaceLauncher(card, section, accent, false);
+        return card;
+    }
+
+    private void addWorkspaceLauncher(JPanel card, String section, Color accent, boolean raisedOnImage) {
+        JButton open = new JButton(section.toUpperCase());
+        open.putClientProperty("pâques.force.filled", true);
         styleWorkspaceButton(open, accent);
+        open.setBackground(WORKSPACE_BUTTON_COLOR);
+        open.setForeground(Frame.NAVY);
+        open.setPreferredSize(new Dimension(195, 38));
         open.addActionListener(event -> openOperationWindow(section));
-        card.add(open, BorderLayout.SOUTH);
+
+        JPanel launcher = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        launcher.setOpaque(false);
+        if (raisedOnImage) {
+            launcher.setPreferredSize(new Dimension(0, 145));
+        } else {
+            launcher.setPreferredSize(new Dimension(0, 145));
+        }
+        launcher.add(open);
+        card.add(launcher, BorderLayout.SOUTH);
+    }
+
+    private JPanel createImageCard(String imagePath) {
+        Image image = new ImageIcon(imagePath).getImage();
+        JPanel card = new JPanel(new BorderLayout(0, 18)) {
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                super.paintComponent(graphics);
+                graphics.drawImage(image, 0, 0, getWidth(), getHeight(), this);
+            }
+        };
         return card;
     }
 
     private void styleWorkspaceButton(JButton button, Color accent) {
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.putClientProperty("pâques.disable.button.hover", true);
         Frame.styleButtonState(button, false);
         button.setFont(new Font("SansSerif", Font.BOLD, 12));
         button.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(Frame.ACCENT),
-                new EmptyBorder(10, 12, 10, 12)));
+                new EmptyBorder(8, 16, 8, 16)));
     }
 
     private void openOperationWindow(String section) {
@@ -156,8 +208,13 @@ public class EmployeePanel extends JPanel {
             default:
                 throw new IllegalArgumentException("Unknown employee workspace: " + section);
         }
+        boolean useSolidWorkspacePane = "Cashier".equals(section) || "Registration".equals(section);
+        if (operationPanel instanceof Frame.BackgroundPanel) {
+            ((Frame.BackgroundPanel) operationPanel).setDecorativeBackground(!useSolidWorkspacePane);
+        }
         JFrame window = new JFrame("Pâques • " + section);
-        JPanel content = new JPanel(new BorderLayout(0, 8));
+        JPanel content = new Frame.BackgroundPanel(true);
+        content.setLayout(new BorderLayout(0, 8));
         content.setBackground(Frame.BACKGROUND);
         content.setBorder(new EmptyBorder(12, 14, 14, 14));
         JPanel windowHeader = new JPanel(new BorderLayout(12, 0));
@@ -167,13 +224,14 @@ public class EmployeePanel extends JPanel {
         title.setForeground(Frame.NAVY);
         JButton back = new JButton("← Employee selection");
         styleActionButton(back, false);
+        styleEmployeeSelectionButton(back);
         back.setForeground(Frame.NAVY);
         back.addActionListener(event -> requestBackToSelection(window));
         windowHeader.add(title, BorderLayout.WEST);
         windowHeader.add(back, BorderLayout.EAST);
         content.add(windowHeader, BorderLayout.NORTH);
         content.add(operationPanel, BorderLayout.CENTER);
-        window.setContentPane(content);
+        window.setContentPane(Frame.createWorkspaceCanvas(content));
         window.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         window.addWindowListener(new WindowAdapter() {
             @Override
@@ -282,7 +340,10 @@ public class EmployeePanel extends JPanel {
     }
 
     private JPanel createCashierPanel() {
-        JPanel panel = new JPanel(new BorderLayout(14, 12));
+        JPanel panel = new Frame.BackgroundPanel();
+        panel.setLayout(new BorderLayout(14, 12));
+        panel.putClientProperty("pâques.pale.buttons", true);
+        panel.putClientProperty("pâques.disable.button.hover", true);
         panel.setBackground(Frame.BACKGROUND);
         panel.setBorder(new EmptyBorder(18, 18, 18, 18));
         JLabel title = new JLabel("Cashier checkout");
@@ -306,7 +367,7 @@ public class EmployeePanel extends JPanel {
                 BorderFactory.createLineBorder(Frame.BORDER), new EmptyBorder(12, 12, 12, 12)));
         int[] selectedTable = { 1 };
         java.util.List<JButton> tableButtons = new java.util.ArrayList<>();
-        JPanel navigation = createTableNavigation("CASHIER", selectedTable, tableButtons,
+        JPanel navigation = createTableNavigation(selectedTable, tableButtons,
                 table -> refreshCashierTickets(ticketContent, table));
         JPanel workspace = new JPanel(new BorderLayout(14, 0));
         workspace.setOpaque(false);
@@ -328,17 +389,12 @@ public class EmployeePanel extends JPanel {
         return panel;
     }
 
-    private JPanel createTableNavigation(String eyebrow, int[] selectedTable,
+    private JPanel createTableNavigation(int[] selectedTable,
             java.util.List<JButton> tableButtons, java.util.function.IntConsumer tableSelected) {
-        JPanel navigation = new JPanel(new BorderLayout(0, 10));
-        navigation.setBackground(Color.WHITE);
-        navigation.setPreferredSize(new Dimension(146, 0));
-        navigation.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(Frame.BORDER), new EmptyBorder(9, 8, 9, 8)));
-        JLabel label = new JLabel(eyebrow);
-        label.setFont(new Font("SansSerif", Font.BOLD, 10));
-        label.setForeground(Frame.MUTED);
-        JPanel tableList = new JPanel(new GridLayout(0, 1, 0, 5));
+        JPanel navigation = new JPanel(new BorderLayout());
+        navigation.setOpaque(false);
+        navigation.setPreferredSize(new Dimension(136, 0));
+        JPanel tableList = new JPanel(new GridLayout(0, 1, 0, 4));
         tableList.setOpaque(false);
         for (int index = 0; index < TableService.TABLE_COUNT; index++) {
             final int tableNumber = index + 1;
@@ -355,7 +411,6 @@ public class EmployeePanel extends JPanel {
             tableButtons.add(button);
             tableList.add(button);
         }
-        navigation.add(label, BorderLayout.NORTH);
         navigation.add(tableList, BorderLayout.CENTER);
         return navigation;
     }
@@ -365,10 +420,12 @@ public class EmployeePanel extends JPanel {
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         Frame.styleButtonState(button, selected);
+        styleLightWorkspaceButton(button);
+        button.setBackground(TABLE_BUTTON_COLOR);
         button.setFont(new Font("SansSerif", selected ? Font.BOLD : Font.PLAIN, 12));
         button.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(selected ? Frame.ACCENT : Frame.BORDER),
-                new EmptyBorder(6, 9, 6, 9)));
+                new EmptyBorder(4, 8, 4, 8)));
     }
 
     private void refreshCashierTickets(JPanel grid, int selectedTable) {
@@ -434,10 +491,12 @@ public class EmployeePanel extends JPanel {
         total.setForeground(Frame.NAVY);
         JButton details = new JButton("See Details");
         styleActionButton(details, false);
+        styleLightWorkspaceButton(details);
         details.addActionListener(event -> showCashierDetails(tableNumber));
         details.setEnabled(!orders.isEmpty());
         JButton payment = new JButton(checkoutRequested ? "Complete Payment" : "Awaiting checkout");
         styleActionButton(payment, checkoutRequested);
+        styleLightWorkspaceButton(payment);
         payment.setEnabled(checkoutRequested && !orders.isEmpty());
         payment.addActionListener(event -> completeCheckout(tableNumber));
         JPanel actions = new JPanel(new GridLayout(1, 2, 6, 0));
@@ -581,7 +640,9 @@ public class EmployeePanel extends JPanel {
     }
 
     private JPanel createKitchenPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 12));
+        JPanel panel = new Frame.BackgroundPanel();
+        panel.setLayout(new BorderLayout(0, 12));
+        panel.putClientProperty("pâques.pale.buttons", true);
         panel.setBackground(Frame.BACKGROUND);
         panel.setBorder(new EmptyBorder(18, 18, 18, 18));
         JLabel title = new JLabel("Kitchen orders");
@@ -735,5 +796,21 @@ public class EmployeePanel extends JPanel {
                 new EmptyBorder(8, 12, 8, 12)));
         Frame.styleButtonState(button, false);
         button.setFont(new Font("SansSerif", Font.BOLD, 12));
+    }
+
+    private void styleLightWorkspaceButton(JButton button) {
+        button.putClientProperty("pâques.disable.button.hover", true);
+        button.setOpaque(true);
+        button.setContentAreaFilled(true);
+        button.setBackground(WORKSPACE_BUTTON_COLOR);
+        button.setForeground(Frame.NAVY);
+    }
+
+    private void styleEmployeeSelectionButton(JButton button) {
+        button.putClientProperty("pâques.disable.button.hover", true);
+        button.setOpaque(true);
+        button.setContentAreaFilled(true);
+        button.setBackground(Color.WHITE);
+        button.setForeground(Frame.NAVY);
     }
 }

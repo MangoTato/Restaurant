@@ -23,10 +23,10 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
-public class Admin extends JPanel {
+public class Admin extends Frame.BackgroundPanel {
     private final Frame mainFrame;
     private final CardLayout contentLayout = new CardLayout();
-    private final JPanel contentPanel = new JPanel(contentLayout);
+    private final JPanel contentPanel = new Frame.BackgroundPanel();
     private final List<JButton> navigationButtons = new ArrayList<>();
     private final EmployeePanel operationsHost;
 
@@ -42,32 +42,33 @@ public class Admin extends JPanel {
         this.mainFrame = mainFrame;
         operationsHost = new EmployeePanel(mainFrame, username);
 
-        setLayout(new BorderLayout(0, 20));
-        setBackground(Frame.BACKGROUND);
-        setBorder(new EmptyBorder(18, 28, 28, 28));
+        setLayout(new BorderLayout(16, 0));
+        setDecorativeBackground(true);
+        putClientProperty("pâques.transparent.buttons", true);
+        setBackground(Color.WHITE);
+        setBorder(new EmptyBorder(20, 60, 6, 60));
 
-        JPanel header = new JPanel(new BorderLayout());
-        header.setOpaque(false);
-        header.setBorder(new EmptyBorder(0, 0, 12, 0));
-        JLabel pageTitle = mainFrame.createLabel("Pâques • Administrator • " + username, 22, Frame.NAVY);
-        pageTitle.setFont(new Font("SansSerif", Font.BOLD, 22));
-        header.add(pageTitle, BorderLayout.WEST);
+        JPanel rail = new JPanel(new BorderLayout(0, 26));
+        rail.setOpaque(false);
+        rail.setPreferredSize(new Dimension(210, 0));
+        JPanel brandBlock = new JPanel();
+        brandBlock.setOpaque(false);
+        brandBlock.setLayout(new BoxLayout(brandBlock, BoxLayout.Y_AXIS));
+        JLabel logo = new JLabel("Pâques");
+        logo.setFont(new Font("SansSerif", Font.BOLD, 25));
+        logo.setForeground(Frame.NAVY);
+        logo.setIcon(new BrandMark());
+        logo.setIconTextGap(11);
+        JLabel brandTag = new JLabel("RESTAURANT OPERATIONS");
+        brandTag.setFont(new Font("SansSerif", Font.BOLD, 10));
+        brandTag.setForeground(new Color(112, 72, 208));
+        brandBlock.add(logo);
+        brandBlock.add(Box.createVerticalStrut(4));
+        brandBlock.add(brandTag);
 
-        JButton logout = new JButton("Sign out");
-        styleActionButton(logout, false, true);
-        logout.addActionListener(e -> mainFrame.signOut());
-        header.add(logout, BorderLayout.EAST);
-
-        JPanel actions = new JPanel(new BorderLayout());
-        actions.setBackground(Frame.ACCENT);
-        actions.setPreferredSize(new Dimension(220, 0));
-        actions.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 226, 220)),
-                new EmptyBorder(8, 8, 8, 8)));
-
-        JPanel buttonPanel = new JPanel(new GridLayout(0, 1, 0, 8));
+        JPanel buttonPanel = new JPanel();
         buttonPanel.setOpaque(false);
-        buttonPanel.setBorder(new EmptyBorder(4, 4, 4, 4));
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
 
         List<String> actionNames = List.of("Overview", "Manage menu", "Staff", "Customer", "Reports", "Tables",
                 "Front Desk", "Kitchen", "Cashier");
@@ -82,35 +83,22 @@ public class Admin extends JPanel {
             });
             navigationButtons.add(button);
             buttonPanel.add(button);
+            buttonPanel.add(Box.createVerticalStrut(13));
         }
-        JPanel buttonHolder = new JPanel(new BorderLayout());
-        buttonHolder.setBackground(Frame.ACCENT);
-        buttonHolder.setBorder(new EmptyBorder(4, 4, 4, 4));
-        buttonHolder.add(buttonPanel, BorderLayout.NORTH);
-        actions.add(buttonHolder, BorderLayout.NORTH);
         setActiveNavigation(navigationButtons.get(0));
 
-        contentPanel.setBackground(Color.WHITE);
+        contentPanel.setLayout(contentLayout);
+        contentPanel.setBackground(Frame.BACKGROUND);
         contentPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(229, 226, 220)),
                 new EmptyBorder(0, 0, 0, 0)));
         contentPanel.add(overviewPanel(), "Home");
         contentLayout.show(contentPanel, "Home");
 
-        JPanel mainArea = new JPanel(new BorderLayout(16, 0));
-        mainArea.setOpaque(false);
-        mainArea.add(actions, BorderLayout.WEST);
-        mainArea.add(contentPanel, BorderLayout.CENTER);
-
-        JLabel status = new JLabel("Administrator  ·  " + username
-                + "     |     Choose a section to manage today's restaurant operations.");
-        status.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        status.setForeground(new Color(100, 105, 110));
-        status.setBorder(new EmptyBorder(10, 8, 0, 8));
-
-        add(header, BorderLayout.NORTH);
-        add(mainArea, BorderLayout.CENTER);
-        add(status, BorderLayout.SOUTH);
+        rail.add(brandBlock, BorderLayout.NORTH);
+        rail.add(buttonPanel, BorderLayout.CENTER);
+        add(rail, BorderLayout.WEST);
+        add(contentPanel, BorderLayout.CENTER);
     }
 
     private void handleAdminAction(String action) {
@@ -132,6 +120,7 @@ public class Admin extends JPanel {
             contentPanel.add(new CustomerLog(mainFrame), "Customer");
             contentLayout.show(contentPanel, "Customer");
         } else if ("Tables".equals(action)) {
+            mainFrame.tableService.resetForNewAdminSession();
             contentPanel.removeAll();
             contentPanel.add(new TableServicePanel(mainFrame), "Tables");
             contentLayout.show(contentPanel, "Tables");
@@ -180,12 +169,15 @@ public class Admin extends JPanel {
         button.setHorizontalAlignment(SwingConstants.LEFT);
         button.setIconTextGap(12);
         button.setPreferredSize(new Dimension(180, 44));
+        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
+        button.setAlignmentX(Component.LEFT_ALIGNMENT);
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(selected ? Color.WHITE : Frame.ACCENT),
-                new EmptyBorder(8, 12, 8, 12)));
-        Frame.styleButtonState(button, selected);
+        button.putClientProperty("pâques.hover.only", true);
+        button.setOpaque(false);
+        button.setContentAreaFilled(false);
+        button.setBorder(new EmptyBorder(8, 12, 8, 12));
+        button.setForeground(selected ? Frame.ACCENT : Frame.NAVY);
         button.setFont(new Font("SansSerif", selected ? Font.BOLD : Font.PLAIN, 14));
     }
 
@@ -276,6 +268,37 @@ public class Admin extends JPanel {
         }
     }
 
+    private static final class BrandMark implements Icon {
+        @Override
+        public int getIconWidth() {
+            return 34;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return 34;
+        }
+
+        @Override
+        public void paintIcon(Component component, Graphics graphics, int x, int y) {
+            Graphics2D g = (Graphics2D) graphics.create();
+            try {
+                g.translate(x, y);
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(new Color(112, 72, 208));
+                g.fillRoundRect(0, 0, 34, 34, 11, 11);
+                g.setColor(Color.WHITE);
+                g.setFont(new Font("Serif", Font.BOLD, 24));
+                FontMetrics metrics = g.getFontMetrics();
+                int letterX = (34 - metrics.stringWidth("P")) / 2;
+                int letterY = (34 - metrics.getHeight()) / 2 + metrics.getAscent();
+                g.drawString("P", letterX, letterY);
+            } finally {
+                g.dispose();
+            }
+        }
+    }
+
     private static final class NavigationButtonCard extends JPanel {
         private NavigationButtonCard() {
             setOpaque(false);
@@ -295,7 +318,8 @@ public class Admin extends JPanel {
     }
 
     private JPanel createReportsPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 12));
+        JPanel panel = new Frame.BackgroundPanel();
+        panel.setLayout(new BorderLayout(10, 12));
         panel.setBackground(Frame.BACKGROUND);
         panel.setBorder(new EmptyBorder(20, 22, 20, 22));
 

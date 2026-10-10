@@ -11,7 +11,10 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
 /** Shared table board for staff roles. */
-public class TableServicePanel extends JPanel {
+public class TableServicePanel extends Frame.BackgroundPanel {
+    private static final Color TABLE_CARD = new Color(252, 253, 255);
+    private static final Color QUIET_ACTION = new Color(248, 250, 253);
+    private static final Color DANGER = new Color(196, 64, 64);
     private final Frame mainFrame;
     private final Runnable backAction;
     private final List<TableCard> cards = new ArrayList<>();
@@ -25,6 +28,10 @@ public class TableServicePanel extends JPanel {
     public TableServicePanel(Frame mainFrame, Runnable backAction) {
         this.mainFrame = mainFrame;
         this.backAction = backAction;
+        putClientProperty("pâques.disable.button.hover", true);
+        if (backAction != null) {
+            putClientProperty("pâques.pale.buttons", true);
+        }
         setLayout(new BorderLayout(10, 15));
         setBackground(Frame.BACKGROUND);
         setBorder(new EmptyBorder(20, 22, 20, 22));
@@ -61,9 +68,9 @@ public class TableServicePanel extends JPanel {
         header.add(legend, BorderLayout.SOUTH);
         add(header, BorderLayout.NORTH);
 
-        JPanel grid = new JPanel(new GridLayout(0, 2, 12, 12));
+        JPanel grid = new JPanel(new GridLayout(0, 2, 16, 16));
         grid.setBackground(Frame.BACKGROUND);
-        grid.setBorder(new EmptyBorder(4, 4, 4, 4));
+        grid.setBorder(new EmptyBorder(6, 4, 14, 4));
         for (int table = 1; table <= TableService.TABLE_COUNT; table++) {
             TableCard card = new TableCard(table);
             cards.add(card);
@@ -116,35 +123,39 @@ public class TableServicePanel extends JPanel {
 
         private TableCard(int tableNumber) {
             this.tableNumber = tableNumber;
-            setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-            setBackground(Frame.CARD);
+            setLayout(new GridBagLayout());
+            setBackground(TABLE_CARD);
             setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(Frame.BORDER),
-                    new EmptyBorder(12, 12, 12, 12)));
+                    new EmptyBorder(16, 16, 16, 16)));
 
             JPanel heading = new JPanel(new BorderLayout(6, 6));
             heading.setOpaque(false);
-            JLabel tableLabel = new JLabel("Table " + tableNumber + " · "
-                    + TableService.capacityFor(tableNumber) + " people");
+            JLabel tableLabel = new JLabel("Table " + tableNumber);
             tableLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
-            stateLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-            heading.add(tableLabel, BorderLayout.WEST);
-            heading.add(stateLabel, BorderLayout.EAST);
-            add(heading);
-            add(Box.createVerticalStrut(8));
+            JLabel capacityLabel = new JLabel(TableService.capacityFor(tableNumber) + " seats");
+            capacityLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+            capacityLabel.setForeground(Frame.MUTED);
+            JPanel tableIdentity = new JPanel();
+            tableIdentity.setOpaque(false);
+            tableIdentity.setLayout(new BoxLayout(tableIdentity, BoxLayout.Y_AXIS));
+            tableIdentity.add(tableLabel);
+            tableIdentity.add(Box.createVerticalStrut(2));
+            tableIdentity.add(capacityLabel);
+            stateLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
+            stateLabel.setOpaque(true);
+            stateLabel.setBorder(new EmptyBorder(6, 9, 6, 9));
+            heading.add(tableIdentity, BorderLayout.WEST);
 
-            JPanel tableActions = new JPanel(new GridLayout(0, 2, 6, 6));
+            JPanel tableActions = new JPanel(new GridLayout(3, 1, 0, 8));
             tableActions.setOpaque(false);
             tableActions.add(openButton);
             tableActions.add(closeButton);
             tableActions.add(cleaningButton);
-            tableActions.add(new JLabel());
             styleTableButton(openButton, true);
             styleTableButton(closeButton, false);
             styleTableButton(cleaningButton, false);
             styleTableButton(findButton, true);
             styleTableButton(startButton, false);
-            add(tableActions);
-            add(Box.createVerticalStrut(6));
 
             JLabel customerLabel = new JLabel("Customer ID");
             customerLabel.setFont(new Font("SansSerif", Font.BOLD, 11));
@@ -154,39 +165,70 @@ public class TableServicePanel extends JPanel {
             customerIdField.setPreferredSize(new Dimension(105, 32));
             customerIdField.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(Frame.BORDER), new EmptyBorder(5, 7, 5, 7)));
-            JPanel lookup = new JPanel(new GridBagLayout());
-            lookup.setOpaque(false);
-            GridBagConstraints lookupConstraints = new GridBagConstraints();
-            lookupConstraints.gridy = 0;
-            lookupConstraints.insets = new Insets(0, 0, 0, 6);
-            lookupConstraints.anchor = GridBagConstraints.BASELINE_LEADING;
-            lookupConstraints.gridx = 0;
-            lookup.add(customerLabel, lookupConstraints);
-            lookupConstraints.gridx = 1;
-            lookupConstraints.weightx = 1;
-            lookupConstraints.fill = GridBagConstraints.HORIZONTAL;
-            lookup.add(customerIdField, lookupConstraints);
-            lookupConstraints.gridx = 2;
-            lookupConstraints.weightx = 0;
-            lookupConstraints.fill = GridBagConstraints.NONE;
-            lookupConstraints.insets = new Insets(0, 0, 0, 0);
-            lookup.add(findButton, lookupConstraints);
-            add(lookup);
-            add(Box.createVerticalStrut(6));
-
             customerDetails.setFont(new Font("SansSerif", Font.PLAIN, 12));
             customerDetails.setVerticalAlignment(SwingConstants.TOP);
             customerDetails.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(Frame.BORDER), new EmptyBorder(7, 8, 7, 8)));
             customerDetails.setOpaque(true);
-            customerDetails.setBackground(Color.WHITE);
-            add(customerDetails);
-            add(Box.createVerticalStrut(6));
+            customerDetails.setBackground(new Color(248, 250, 253));
+            customerDetails.setHorizontalAlignment(SwingConstants.LEFT);
 
-            JPanel startRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
-            startRow.setOpaque(false);
-            startRow.add(startButton);
-            add(startRow);
+            JPanel lookupHeader = new JPanel(new GridBagLayout());
+            lookupHeader.setOpaque(false);
+            GridBagConstraints lookupConstraints = new GridBagConstraints();
+            lookupConstraints.gridy = 0;
+            lookupConstraints.anchor = GridBagConstraints.BASELINE_LEADING;
+            lookupConstraints.insets = new Insets(0, 0, 0, 7);
+            lookupHeader.add(customerLabel, lookupConstraints);
+            lookupConstraints.gridx = 1;
+            lookupConstraints.weightx = 1;
+            lookupConstraints.fill = GridBagConstraints.HORIZONTAL;
+            lookupHeader.add(customerIdField, lookupConstraints);
+            lookupConstraints.gridx = 2;
+            lookupConstraints.weightx = 0;
+            lookupConstraints.fill = GridBagConstraints.NONE;
+            lookupHeader.add(findButton, lookupConstraints);
+            lookupConstraints.gridx = 3;
+            lookupConstraints.insets = new Insets(0, 5, 0, 0);
+            lookupHeader.add(stateLabel, lookupConstraints);
+
+            GridBagConstraints cardConstraints = new GridBagConstraints();
+            cardConstraints.gridx = 0;
+            cardConstraints.gridy = 0;
+            cardConstraints.anchor = GridBagConstraints.FIRST_LINE_START;
+            cardConstraints.insets = new Insets(0, 0, 10, 12);
+            add(heading, cardConstraints);
+
+            cardConstraints.gridx = 1;
+            cardConstraints.weightx = 1;
+            cardConstraints.fill = GridBagConstraints.HORIZONTAL;
+            cardConstraints.insets = new Insets(0, 0, 10, 0);
+            add(lookupHeader, cardConstraints);
+
+            cardConstraints.gridx = 0;
+            cardConstraints.gridy = 1;
+            cardConstraints.weightx = 0;
+            cardConstraints.weighty = 1;
+            cardConstraints.fill = GridBagConstraints.HORIZONTAL;
+            cardConstraints.anchor = GridBagConstraints.FIRST_LINE_START;
+            cardConstraints.insets = new Insets(0, 0, 10, 12);
+            add(tableActions, cardConstraints);
+
+            cardConstraints.gridx = 1;
+            cardConstraints.weightx = 1;
+            cardConstraints.fill = GridBagConstraints.BOTH;
+            cardConstraints.insets = new Insets(0, 0, 10, 0);
+            customerDetails.setPreferredSize(new Dimension(0, 72));
+            add(customerDetails, cardConstraints);
+
+            cardConstraints.gridx = 0;
+            cardConstraints.gridy = 2;
+            cardConstraints.gridwidth = 2;
+            cardConstraints.weightx = 1;
+            cardConstraints.weighty = 0;
+            cardConstraints.fill = GridBagConstraints.HORIZONTAL;
+            cardConstraints.insets = new Insets(0, 0, 0, 0);
+            add(startButton, cardConstraints);
 
             findButton.addActionListener(e -> findCustomer());
             startButton.addActionListener(e -> startTable());
@@ -211,11 +253,29 @@ public class TableServicePanel extends JPanel {
         private void styleTableButton(JButton button, boolean primary) {
             button.setFocusPainted(false);
             button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            Frame.styleButtonState(button, false);
-            button.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(Frame.ACCENT),
-                    new EmptyBorder(6, 9, 6, 9)));
             button.setFont(new Font("SansSerif", Font.BOLD, 11));
+            applyTableButtonStyle(button, primary ? Frame.ACCENT : QUIET_ACTION,
+                    primary ? Color.WHITE : Frame.NAVY, primary ? Frame.ACCENT : Frame.BORDER);
+        }
+
+        private void applyTableButtonStyle(JButton button, Color background, Color foreground, Color border) {
+            Frame.clearButtonHoverAppearance(button);
+            button.putClientProperty("pâques.selected", false);
+            button.setOpaque(true);
+            button.setContentAreaFilled(true);
+            boolean paleButtons = Boolean.TRUE.equals(getClientProperty("pâques.pale.buttons"));
+            boolean dangerAction = button == closeButton && DANGER.equals(background);
+            boolean cleaningAction = button == cleaningButton && Frame.SUCCESS.equals(background);
+            boolean startAction = button == startButton;
+            button.putClientProperty("pâques.danger", dangerAction);
+            button.putClientProperty("pâques.success", cleaningAction);
+            button.setBackground(cleaningAction ? Frame.SUCCESS
+                    : (paleButtons || startAction ? Frame.BACKGROUND : (dangerAction ? DANGER : Frame.CARD)));
+            button.setForeground(dangerAction || cleaningAction ? Color.WHITE
+                    : (paleButtons || startAction ? Frame.NAVY
+                            : (foreground.equals(Color.WHITE) ? Frame.NAVY : foreground)));
+            button.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(border), new EmptyBorder(8, 10, 8, 10)));
         }
 
         private void findCustomer() {
@@ -470,17 +530,31 @@ public class TableServicePanel extends JPanel {
             }
             stateLabel.setText(state);
             stateLabel.setForeground(color);
+            stateLabel.setBackground(new Color(color.getRed(), color.getGreen(), color.getBlue(), 24));
             boolean cleaning = mainFrame.tableService.getStatus(tableNumber) == TableService.Status.CLEANING;
-            openButton.setEnabled(mainFrame.tableService.getStatus(tableNumber) == TableService.Status.AVAILABLE
-                    && !checkoutRequested && !lookupInProgress && !startInProgress);
+            boolean canOpen = mainFrame.tableService.getStatus(tableNumber) == TableService.Status.AVAILABLE
+                    && !checkoutRequested && !lookupInProgress && !startInProgress;
+            boolean canClose = occupied || mainFrame.tableService.getCustomerId(tableNumber) != null;
+            boolean canClean = cleaning || (!occupied && !checkoutRequested
+                    && mainFrame.tableService.getStatus(tableNumber) != TableService.Status.RESERVED);
+            openButton.setEnabled(canOpen);
             findButton.setEnabled(!startInProgress);
-            closeButton.setEnabled(occupied || mainFrame.tableService.getCustomerId(tableNumber) != null);
+            closeButton.setEnabled(canClose);
             cleaningButton.setText(cleaning ? "Mark Available" : "Mark Cleaning");
-            cleaningButton.setEnabled(cleaning || (!occupied && !checkoutRequested
-                    && mainFrame.tableService.getStatus(tableNumber) != TableService.Status.RESERVED));
+            cleaningButton.setEnabled(canClean);
             startButton.setEnabled(!occupied && !cleaning && !checkoutRequested && selectedCustomer != null
                     && !lookupInProgress && !startInProgress && !"Cancelled".equalsIgnoreCase(selectedCustomer.status)
                     && !"Completed".equalsIgnoreCase(selectedCustomer.status));
+
+            applyTableButtonStyle(openButton, canOpen ? Frame.ACCENT : QUIET_ACTION,
+                    canOpen ? Color.WHITE : Frame.MUTED, canOpen ? Frame.ACCENT : Frame.BORDER);
+            applyTableButtonStyle(closeButton, canClose ? DANGER : QUIET_ACTION,
+                    canClose ? Color.WHITE : Frame.MUTED, canClose ? DANGER : Frame.BORDER);
+            applyTableButtonStyle(cleaningButton, Frame.SUCCESS, Color.WHITE, Frame.SUCCESS);
+            applyTableButtonStyle(findButton, Frame.ACCENT, Color.WHITE, Frame.ACCENT);
+            boolean canStart = startButton.isEnabled();
+            applyTableButtonStyle(startButton, canStart ? Frame.ACCENT : QUIET_ACTION,
+                    canStart ? Color.WHITE : Frame.MUTED, canStart ? Frame.ACCENT : Frame.BORDER);
         }
     }
 
